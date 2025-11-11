@@ -21,15 +21,15 @@
   /* AquaFund theme */
   --color-primary: #032206;
   --color-primary-content: #ffffff;
-  --color-secondary: #EEFDE11A;
+  --color-secondary: #eefde11a;
   --color-secondary-content: #032206;
   --color-accent: #032206;
   --color-accent-content: #ffffff;
   --color-neutral: #032206;
   --color-neutral-content: #ffffff;
   --color-base-100: #ffffff;
-  --color-base-200: #EEFDE11A;
-  --color-base-300: #CAC4D0;
+  --color-base-200: #eefde11a;
+  --color-base-300: #cac4d0;
   --color-base-content: #032206;
   --color-info: #032206;
   --color-success: #2e7d32;
@@ -47,7 +47,7 @@
   /* AquaFund dark variant */
   --color-primary: #032206;
   --color-primary-content: #f1fff4;
-  --color-secondary: #EEFDE11A;
+  --color-secondary: #eefde11a;
   --color-secondary-content: #f1fff4;
   --color-accent: #032206;
   --color-accent-content: #f1fff4;
