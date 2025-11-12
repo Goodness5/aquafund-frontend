@@ -125,14 +125,21 @@ export const useScaffoldEventHistory = <
 
   const isContractAddressAndClientReady = Boolean(deployedContractData?.address) && Boolean(publicClient);
 
-  const fromBlockValue =
-    fromBlock !== undefined
-      ? fromBlock
-      : BigInt(
-          deployedContractData && "deployedOnBlock" in deployedContractData
-            ? deployedContractData.deployedOnBlock || 0
-            : 0,
-        );
+  const fromBlockValue = (() => {
+    if (fromBlock !== undefined) {
+      return fromBlock;
+    }
+    if (deployedContractData && "deployedOnBlock" in deployedContractData) {
+      const deployedOnBlock = (deployedContractData as Record<string, unknown>).deployedOnBlock;
+      if (typeof deployedOnBlock === "bigint") return deployedOnBlock;
+      if (typeof deployedOnBlock === "number") return BigInt(deployedOnBlock);
+      if (typeof deployedOnBlock === "string") {
+        const parsed = Number(deployedOnBlock);
+        return BigInt(Number.isFinite(parsed) ? parsed : 0);
+      }
+    }
+    return 0n;
+  })();
 
   const query = useInfiniteQuery({
     queryKey: [
