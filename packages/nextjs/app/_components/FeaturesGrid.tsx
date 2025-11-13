@@ -1,7 +1,7 @@
 "use client";
 
-import { AdjustmentsHorizontalIcon, GlobeAltIcon, ShieldCheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import { FadeInSection } from "./FadeInSection";
+import { AdjustmentsHorizontalIcon, GlobeAltIcon, ShieldCheckIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 const features = [
   {

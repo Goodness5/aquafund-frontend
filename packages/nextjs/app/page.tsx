@@ -1,27 +1,24 @@
 import dynamic from "next/dynamic";
-import type { Metadata } from "next";
+import { CallToAction } from "./_components/CallToAction";
 import { FeaturesGrid } from "./_components/FeaturesGrid";
 import { Hero } from "./_components/Hero";
 import { HowItWorks } from "./_components/HowItWorks";
-import  ProjectsPreview  from "./_components/ProjectsPreview";
-import { StatsBand } from "./_components/StatsBand";
-import { CallToAction } from "./_components/CallToAction";
+import ProjectsPreview from "./_components/ProjectsPreview";
+import type { Metadata } from "next";
 
 const LoadingPlaceholder = () => <div className="container mx-auto px-4 py-20" aria-hidden />;
 
-const ImpactInsights = dynamic(
-  () => import("./_components/ImpactInsights").then(mod => mod.ImpactInsights),
-  { loading: LoadingPlaceholder }
-);
+const ImpactInsights = dynamic(() => import("./_components/ImpactInsights").then(mod => mod.ImpactInsights), {
+  loading: LoadingPlaceholder,
+});
 
-const StorySpotlight = dynamic(
-  () => import("./_components/StorySpotlight").then(mod => mod.StorySpotlight),
-  { loading: LoadingPlaceholder }
-);
+const Fundraising = dynamic(() => import("./_components/Fundraising").then(mod => mod.Fundraising), {
+  loading: LoadingPlaceholder,
+});
 
 const CommunitySpotlight = dynamic(
   () => import("./_components/CommunitySpotlight").then(mod => mod.CommunitySpotlight),
-  { loading: LoadingPlaceholder }
+  { loading: LoadingPlaceholder },
 );
 
 export const metadata: Metadata = {
@@ -51,7 +48,7 @@ export default function Home() {
       {/* <StatsBand /> */}
       <ProjectsPreview />
       <ImpactInsights />
-      <StorySpotlight />
+      <Fundraising />
       <HowItWorks />
       <FeaturesGrid />
       <CommunitySpotlight />

@@ -1,5 +1,5 @@
-declare module 'react-simple-maps' {
-  import { ReactNode } from 'react';
+declare module "react-simple-maps" {
+  import { ReactNode } from "react";
 
   export interface Geography {
     rsmKey: string;
@@ -60,4 +60,3 @@ declare module 'react-simple-maps' {
   export const Marker: React.FC<MarkerProps>;
   export const ZoomableGroup: React.FC<ZoomableGroupProps>;
 }
-

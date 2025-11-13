@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { HeartIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { FadeInSection } from "./FadeInSection";
+import { HeartIcon, UsersIcon } from "@heroicons/react/24/outline";
 
 const champions = [
   { name: "Aqua Trust", focus: "Rural filtration kits" },
@@ -13,14 +13,7 @@ const champions = [
   { name: "Blue Horizon", focus: "Coastal restoration" },
 ];
 
-const supporters = [
-  "0xB5...02d9",
-  "0xA4...18F1",
-  "0x9c...bf64",
-  "0x61...dEa3",
-  "0x45...Ab81",
-  "0x33...6d42",
-];
+const supporters = ["0xB5...02d9", "0xA4...18F1", "0x9c...bf64", "0x61...dEa3", "0x45...Ab81", "0x33...6d42"];
 
 export function CommunitySpotlight() {
   return (
@@ -87,4 +80,3 @@ export function CommunitySpotlight() {
     </section>
   );
 }
-

@@ -40,7 +40,7 @@ export function FadeInSection<T extends ElementType = "div">({
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     observer.observe(node);
@@ -56,14 +56,8 @@ export function FadeInSection<T extends ElementType = "div">({
     .join(" ");
 
   return (
-    <Tag
-      ref={ref}
-      style={{ ...style, transitionDelay: `${delay}ms` }}
-      className={mergedClassName}
-      {...rest}
-    >
+    <Tag ref={ref} style={{ ...style, transitionDelay: `${delay}ms` }} className={mergedClassName} {...rest}>
       {children}
     </Tag>
   );
 }
-

@@ -29,11 +29,7 @@ export function StatsBand() {
           value={s?.totalDonations}
           description="On-chain contributions recorded transparently"
         />
-        <Stat
-          label="People Helped"
-          value={s?.totalDonors}
-          description="Supporters powering long-term water access"
-        />
+        <Stat label="People Helped" value={s?.totalDonors} description="Supporters powering long-term water access" />
       </div>
     </section>
   );

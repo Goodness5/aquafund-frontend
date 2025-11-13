@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { ArrowDownIcon, ArrowUpRightIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { FadeInSection } from "./FadeInSection";
 import TiltedBadge from "./tiltbadge";
+import { ArrowUpRightIcon } from "@heroicons/react/24/outline";
 
 declare global {
   interface Window {
@@ -58,15 +58,15 @@ export function Hero() {
           mouseControls: true,
           touchControls: true,
           gyroControls: false,
-          minHeight: 200.00,
-          minWidth: 200.00,
-          scale: 1.00,
-          scaleMobile: 1.00,
+          minHeight: 200.0,
+          minWidth: 200.0,
+          scale: 1.0,
+          scaleMobile: 1.0,
           color: 0xd3eff,
           color2: 0xd3eff,
           backgroundColor: 0xfffffe,
-          size: 2.30,
-          spacing: 28.00
+          size: 2.3,
+          spacing: 28.0,
         });
       } catch (err) {
         console.error("Failed to initialize Vanta background", err);
@@ -84,10 +84,8 @@ export function Hero() {
 
   return (
     <section ref={heroRef} className="relative overflow-hidden">
-
-
       <div className="relative container mx-auto pt-24 px-8 text-center flex flex-col justify-between space-y-8">
-        <TiltedBadge />
+        <TiltedBadge text="Decentralized" imageurl="/decentralized.svg" />
 
         <FadeInSection className="mt-6" delay={80}>
           <h1 className="text-4xl font-[700] leading-tight md:text-6xl">
@@ -95,8 +93,8 @@ export function Hero() {
             <br className="hidden sm:block" />
             <span> Starts Here</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-3xl font-[400] md:text-lg" >
-          Every drop counts. AquaFund connects you directly to water crowdfunding projects around the world.
+          <p className="mx-auto mt-4 max-w-3xl font-[400] md:text-lg">
+            Every drop counts. AquaFund connects you directly to water crowdfunding projects around the world.
           </p>
         </FadeInSection>
 
@@ -105,19 +103,13 @@ export function Hero() {
             Donate to Projects
             <ArrowUpRightIcon className="h-4 w-4" />
           </Link>
-          <Link
-            href="/start"
-            className="btn btn-outline btn-wide gap-2"
-          >
+          <Link href="/start" className="btn btn-outline btn-wide gap-2">
             Start a Fundraiser
             <ArrowUpRightIcon className="h-4 w-4" />
           </Link>
         </FadeInSection>
 
-        <FadeInSection
-          className="mx-auto justify-between mt-4 w-[50%] flex "
-          delay={220}
-        >
+        <FadeInSection className="mx-auto justify-between mt-4 w-[50%] flex " delay={220}>
           {stats.map(stat => (
             <div key={stat.label} className="flex flex-col">
               <p className="text-[3em] font-bold ">{stat.value}</p>
