@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">AquaFund global impact map illustration</title>
+  <desc id="desc">
+    Simplified world map used for decorative purposes to highlight AquaFund projects.
+  </desc>
+  <defs>
+    <radialGradient id="ocean" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#082f49" />
+    </radialGradient>
+    <linearGradient id="land" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#ocean)" rx="36" ry="36" />
+  <g fill="url(#land)" opacity="0.85">
+    <path d="M236 180l22-14 32-8 18 12 42-6 50 18 30 20 44 12 12 32-32 24-38-2-22 10-34-8-20 8-42-14-38-38z" />
+    <path d="M482 124l30-20 50-10 54 6 44 16 18 26-18 34 12 34-42 10-40-28-42-14-24-18-12-28z" />
+    <path d="M660 208l28-8 40 12 34-10 16 18 28 12-4 32-28 8-26-12-22 12-30-6-10-16z" />
+    <path d="M252 318l36-6 40 10 36 24 18 30-8 20-46 14-42-10-32-26-10-24z" />
+    <path d="M420 320l40-12 48 10 38 18 10 22-18 24-34 10-46-8-28-28z" />
+    <path d="M606 326l24-10 34 10 28 18 10 20-16 24-36 12-32-10-18-22z" />
+    <path d="M724 398l32-12 34 8 20 18-8 22-30 12-28-6-16-14z" />
+    <path d="M826 294l24-12 22 4 20 20-8 18-24 8-20-10z" />
+  </g>
+  <g fill="#fef3c7" opacity="0.9">
+    <circle cx="300" cy="210" r="6" />
+    <circle cx="420" cy="260" r="6" />
+    <circle cx="602" cy="246" r="6" />
+    <circle cx="708" cy="294" r="6" />
+    <circle cx="780" cy="360" r="6" />
+    <circle cx="508" cy="350" r="6" />
+  </g>
+</svg>
+

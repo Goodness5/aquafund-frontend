@@ -8,35 +8,26 @@ export const SwitchTheme = ({ className }: { className?: string }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  const isDarkMode = resolvedTheme === "dark";
-
-  const handleToggle = () => {
-    if (isDarkMode) {
-      setTheme("light");
-      return;
-    }
-    setTheme("dark");
-  };
-
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
 
+  const isDarkMode = resolvedTheme === "dark";
+
+  const handleToggle = () => {
+    setTheme(isDarkMode ? "light" : "dark");
+  };
+
   return (
-    <div className={`flex space-x-2 h-8 items-center justify-center text-sm ${className}`}>
-      <input
-        id="theme-toggle"
-        type="checkbox"
-        className="toggle bg-secondary toggle-primary hover:bg-accent transition-all"
-        onChange={handleToggle}
-        checked={isDarkMode}
-      />
-      <label htmlFor="theme-toggle" className={`swap swap-rotate ${!isDarkMode ? "swap-active" : ""}`}>
-        <SunIcon className="swap-on h-5 w-5" />
-        <MoonIcon className="swap-off h-5 w-5" />
-      </label>
-    </div>
+    <button
+      type="button"
+      onClick={handleToggle}
+      className={`inline-flex items-center gap-2 rounded-full border border-[#cac4d0] bg-[color:var(--af-surface)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-base-content)] shadow-sm transition-colors hover:bg-[color:var(--af-surface-soft)] ${className}`}
+    >
+      {isDarkMode ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />}
+      <span>{isDarkMode ? "Dark" : "Light"}</span>
+    </button>
   );
 };

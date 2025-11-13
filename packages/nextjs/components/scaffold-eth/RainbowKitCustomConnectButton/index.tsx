@@ -1,6 +1,7 @@
 "use client";
 
 // @refresh reset
+import { useState } from "react";
 import { AddressInfoDropdown } from "./AddressInfoDropdown";
 import { AddressQRCodeModal } from "./AddressQRCodeModal";
 import { RevealBurnerPKModal } from "./RevealBurnerPKModal";
@@ -18,6 +19,8 @@ import { getBlockExplorerAddressLink } from "~~/utils/scaffold-eth";
 export const RainbowKitCustomConnectButton = () => {
   const networkColor = useNetworkColor();
   const { targetNetwork } = useTargetNetwork();
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [burnerModalOpen, setBurnerModalOpen] = useState(false);
 
   return (
     <ConnectButton.Custom>
@@ -62,9 +65,15 @@ export const RainbowKitCustomConnectButton = () => {
                     displayName={account.displayName}
                     ensAvatar={account.ensAvatar}
                     blockExplorerAddressLink={blockExplorerAddressLink}
+                    onOpenQrModal={() => setQrModalOpen(true)}
+                    onRevealBurnerPk={() => setBurnerModalOpen(true)}
                   />
-                  <AddressQRCodeModal address={account.address as Address} modalId="qrcode-modal" />
-                  <RevealBurnerPKModal />
+                  <AddressQRCodeModal
+                    address={account.address as Address}
+                    isOpen={qrModalOpen}
+                    onClose={() => setQrModalOpen(false)}
+                  />
+                  <RevealBurnerPKModal isOpen={burnerModalOpen} onClose={() => setBurnerModalOpen(false)} />
                 </>
               );
             })()}
