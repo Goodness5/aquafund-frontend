@@ -96,6 +96,16 @@ html, body {
   padding-bottom: 1.5rem;
   background: #5ee7ff1a;
 }
+.footer-bg-box {
+  position: relative;
+  border-radius: 0;
+  overflow: hidden;
+  background-color: #001627;
+  background-image: url('/background-noise.svg');
+  background-repeat: repeat;
+  background-blend-mode: screen;
+  background-size: auto;
+}
 
 @media (min-width: 768px) {
   .become-donor-bg-box {
@@ -117,6 +127,19 @@ html, body {
   background-position: center;
   z-index: 0;
 }
+
+.footer-bg-box::before,
+.footer-bg-box::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
 .become-donor-bg-box::before {
   top: 0;
   background-image: url('/become-donor-bg.svg');
@@ -128,7 +151,7 @@ html, body {
   transform: scaleY(-1);
 }
 
-.become-donor-bg-box > * {
+.become-donor-bg-box > *, .footer-bg-box > * {
   position: relative;
   z-index: 1;
 }

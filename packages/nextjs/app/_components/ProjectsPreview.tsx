@@ -82,7 +82,7 @@ const MOCK_PROJECTS = [
   },
 ];
 
-function DonorTag({ donations }: { donations: number }) {
+export function DonorTag({ donations }: { donations: number }) {
   return (
     <span
       className="absolute right-3 top-3 px-3 py-1 rounded-full text-xs font-medium"
@@ -97,7 +97,7 @@ function DonorTag({ donations }: { donations: number }) {
   );
 }
 
-function ProgressBar({ value, max }: { value: number; max: number }) {
+export function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <div className="w-full h-2 bg-[#183241] rounded-full overflow-hidden mt-2">
@@ -109,7 +109,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function DonateButton({ projectId }: { projectId: number }) {
+export function DonateButton({ projectId }: { projectId: number }) {
   const router = useRouter();
 
   return (
@@ -133,14 +133,14 @@ function DonateButton({ projectId }: { projectId: number }) {
   );
 }
 
-function ProjectCard({ project }: { project: (typeof MOCK_PROJECTS)[0] }) {
+export function ProjectCard({ project }: { project: (typeof MOCK_PROJECTS)[0] }) {
   return (
     <div
       className="relative flex flex-col shadow-xl rounded-xl overflow-hidden bg-[#11212b] text-white min-h-[260px] transition-all duration-200 group-hover:scale-105 group-focus-within:scale-105 group-hover:shadow-[0_8px_30px_-10px_rgba(3,80,181,0.28)] group-focus-within:shadow-[0_8px_30px_-10px_rgba(3,80,181,0.28)] group-hover:z-10 group-focus-within:z-10"
       tabIndex={-1}
     >
       <div className="relative h-40 overflow-hidden">
-        <Image src={project.image} alt={project.title} fill style={{ objectFit: "cover" }} />
+        <Image src={project.image} alt={project.title} fill style={{ objectFit: "cover", background: "#11212b" }} />
         <DonorTag donations={project.donations} />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -205,11 +205,11 @@ export default function ProjectsPreview() {
     <section
       id="projects"
       aria-labelledby="projects-heading"
-      className="relative py-16 md:py-18 px-8"
+      className="relative py-16 md:py-18 px-8 bg-[#001627] z-[200000]"
       style={{
         background: "url('/Frame 2121457992.svg') top center / 100% 100% no-repeat, #001627",
-        backgroundBlendMode: "normal, normal",
         backgroundRepeat: "no-repeat, no-repeat",
+        backgroundBlendMode: "normal, normal",
         backgroundPosition: "top center, center",
         backgroundSize: "100% 100%, cover",
       }}
