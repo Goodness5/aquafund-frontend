@@ -49,10 +49,6 @@ export default function Home() {
       <ProjectsPreview />
       <ImpactInsights />
       <Fundraising />
-      <HowItWorks />
-      <FeaturesGrid />
-      <CommunitySpotlight />
-      <CallToAction />
     </main>
   );
 }

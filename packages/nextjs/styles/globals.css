@@ -38,6 +38,13 @@
   background: var(--af-surface);
 }
 
+html, body {
+  min-height: 100vh;
+  background: var(--af-surface) url('/background-noise.svg') repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -65,9 +72,6 @@
     color: var(--color-base-content);
   }
 
-  p {
-    margin: 1rem 0;
-  }
 
   summary::-webkit-details-marker {
     display: none;
@@ -80,6 +84,53 @@
 
 .link:hover {
   opacity: 80%;
+}
+
+.become-donor-bg-box {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid #cac4d0;
+  overflow: hidden;
+  padding: 1.5rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  background: #5ee7ff1a;
+}
+
+@media (min-width: 768px) {
+  .become-donor-bg-box {
+    padding: 3rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+}
+
+.become-donor-bg-box::before,
+.become-donor-bg-box::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+.become-donor-bg-box::before {
+  top: 0;
+  background-image: url('/become-donor-bg.svg');
+  transform: none;
+}
+.become-donor-bg-box::after {
+  bottom: 0;
+  background-image: url('/become-donor-bg.svg');
+  transform: scaleY(-1);
+}
+
+.become-donor-bg-box > * {
+  position: relative;
+  z-index: 1;
 }
 
 @layer components {

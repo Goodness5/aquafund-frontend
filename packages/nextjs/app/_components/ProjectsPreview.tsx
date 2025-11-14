@@ -160,7 +160,7 @@ function ProjectCard({ project }: { project: (typeof MOCK_PROJECTS)[0] }) {
   );
 }
 
-function ArrowButton({ direction, ...props }: { direction: "left" | "right"; onClick?: () => void }) {
+export function ArrowButton({ direction, ...props }: { direction: "left" | "right"; onClick?: () => void }) {
   return (
     <button
       type="button"
@@ -207,8 +207,11 @@ export default function ProjectsPreview() {
       aria-labelledby="projects-heading"
       className="relative py-16 md:py-18 px-8"
       style={{
-        background: "#001627 url('/Frame 2121457992.svg') center top repeat-x",
-        backgroundSize: "cover",
+        background: "url('/Frame 2121457992.svg') top center / 100% 100% no-repeat, #001627",
+        backgroundBlendMode: "normal, normal",
+        backgroundRepeat: "no-repeat, no-repeat",
+        backgroundPosition: "top center, center",
+        backgroundSize: "100% 100%, cover",
       }}
     >
       <div className="container mx-auto">
