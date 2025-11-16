@@ -364,4 +364,124 @@ html, body {
   .alert-warning {
     @apply border-[#f7a11a40] bg-[#fdf4e6] text-[#7a4a00];
   }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-slideUp {
+    animation: slideUp 0.6s ease-out both;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  .rich-text-content {
+    color: #475068;
+    line-height: 1.75;
+  }
+
+  .rich-text-content h1,
+  .rich-text-content h2,
+  .rich-text-content h3,
+  .rich-text-content h4,
+  .rich-text-content h5,
+  .rich-text-content h6 {
+    color: #001627;
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+  }
+
+  .rich-text-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .rich-text-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .rich-text-content p {
+    margin-bottom: 1em;
+    line-height: 1.75;
+  }
+
+  .rich-text-content ul,
+  .rich-text-content ol {
+    margin: 1em 0;
+    padding-left: 2em;
+  }
+
+  .rich-text-content li {
+    margin-bottom: 0.5em;
+    line-height: 1.75;
+  }
+
+  .rich-text-content strong {
+    font-weight: 600;
+    color: #001627;
+  }
+
+  .rich-text-content a {
+    color: #0350B5;
+    text-decoration: underline;
+  }
+
+  .rich-text-content a:hover {
+    color: #034093;
+  }
+
+  .rich-text-content blockquote {
+    border-left: 4px solid #CAC4D0;
+    padding-left: 1em;
+    margin: 1.5em 0;
+    font-style: italic;
+    color: #475068;
+  }
+
+  .rich-text-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1.5em 0;
+  }
 }
