@@ -64,12 +64,12 @@ export default function OverviewPage() {
       {/* Charts Row */}
       <FadeInSection delay={300}>
         <div className="flex flex-col lg:flex-row gap-6 mb-6 lg:items-stretch min-w-0">
-          <div className="flex-1 lg:flex-[4] flex min-w-0">
+          <div className="w-full flex min-w-0">
             <Suspense fallback={<ChartSkeleton />}>
               <DonationTrendsChart />
             </Suspense>
           </div>
-          <div className="flex-1 lg:w-72 lg:flex-shrink-0 flex min-w-0">
+          <div className="w-1/2 flex min-w-0">
             <Suspense fallback={<ChartSkeleton />}>
               <DonationSourcesChart />
             </Suspense>

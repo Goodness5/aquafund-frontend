@@ -84,9 +84,6 @@ export default function BecomeADonorSection() {
               {avatarCluster.map((src, i) => {
                 const angle = (i / avatarsToShow) * 2 * Math.PI;
                 const jitter = Math.sin(angle * 2.8 + i) * (size * 0.08);
-                const r = avatarRadius + jitter;
-                const x = (size / 2) + Math.cos(angle) * r;
-                const y = (size / 2) + Math.sin(angle) * r;
                 const avatarSize = Math.max(size * 0.22, 52); // between 52px and ~25% cluster width
                 return (
                   <div

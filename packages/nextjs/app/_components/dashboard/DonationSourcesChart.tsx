@@ -87,7 +87,7 @@ export default function DonationSourcesChart() {
         </svg>
 
         {/* Legend - no radio buttons, just labels */}
-        <div className="space-y-3">
+        <div className=" w-full flex justify-center gap-8 items-center">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full bg-[#00BF3C]"></div>
             <span className="text-[#001627] text-sm">Crypto</span>

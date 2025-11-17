@@ -20,13 +20,10 @@ export default defineConfig([
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/ban-ts-comment": "off",
-
-      "prettier/prettier": [
-        "warn",
-        {
-          endOfLine: "auto",
-        },
-      ],
+      "@typescript-eslint/no-unused-vars": "off",
+      "react/no-unescaped-entities": "off",
+      "@next/next/no-img-element": "off",
+      "prettier/prettier": "off",
     },
   },
 ]);

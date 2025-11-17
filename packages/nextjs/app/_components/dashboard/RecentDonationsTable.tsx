@@ -91,7 +91,7 @@ export default function RecentDonationsTable() {
           <DateRangeDropdown value={dateRange} onChange={setDateRange} />
         </div>
         <div className="text-center py-12 text-[#475068]">
-          You haven't received any donation yet
+          You haven&apos;t received any donation yet
         </div>
       </div>
     );

@@ -1,12 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Button } from "./Button";
-import { FadeInSection } from "./FadeInSection";
-import TiltedBadge from "./tiltbadge";
-import { ArrowRightIcon } from "@heroicons/react/24/outline";
+import React from "react";
 import FundraisingHeader from "./fundraising/FundraisingHeader";
 import FundraisingSteps from "./fundraising/FundraisingSteps";
 import FundraisingHeroImage from "./fundraising/FundraisingHeroImage";

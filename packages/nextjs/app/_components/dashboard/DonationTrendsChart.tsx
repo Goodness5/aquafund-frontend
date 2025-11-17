@@ -5,8 +5,6 @@ import DateRangeDropdown from "./DateRangeDropdown";
 
 // Mock data generator based on date range
 const generateDataForRange = (range: string) => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
   // Different data patterns for different ranges
   const dataPatterns: Record<string, { data: number[]; previous: number[] }> = {
     "Last 7 Days": {

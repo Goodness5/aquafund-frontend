@@ -2,7 +2,6 @@ import { FadeInSection } from "../FadeInSection";
 import Link from "next/link";
 import { Button } from "../Button";
 import { ArrowUpRightIcon } from "@heroicons/react/24/outline";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 const features = [
@@ -39,7 +38,6 @@ const features = [
 ];
 
 export default function FundraisingFeatures() {
-  const router = useRouter();
   return (
     <>
       <FadeInSection className="text-center mb-12">

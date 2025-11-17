@@ -38,7 +38,7 @@ export default function VerificationBanner({ isVerified = false }: VerificationB
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm lg:text-base">Verification Pending</p>
         <p className="text-xs lg:text-sm mt-1">
-          Your account is currently under review. We'll notify you once verification is complete (usually within 24-48 hours).
+          Your account is currently under review. We&apos;ll notify you once verification is complete (usually within 24-48 hours).
         </p>
       </div>
       <button

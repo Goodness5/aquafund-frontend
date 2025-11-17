@@ -1,8 +1,5 @@
 import dynamic from "next/dynamic";
-import { CallToAction } from "./_components/CallToAction";
-import { FeaturesGrid } from "./_components/FeaturesGrid";
 import { Hero } from "./_components/Hero";
-import { HowItWorks } from "./_components/HowItWorks";
 import ProjectsPreview from "./_components/ProjectsPreview";
 import type { Metadata } from "next";
 
@@ -15,11 +12,6 @@ const ImpactInsights = dynamic(() => import("./_components/ImpactInsights").then
 const Fundraising = dynamic(() => import("./_components/Fundraising").then(mod => mod.Fundraising), {
   loading: LoadingPlaceholder,
 });
-
-const CommunitySpotlight = dynamic(
-  () => import("./_components/CommunitySpotlight").then(mod => mod.CommunitySpotlight),
-  { loading: LoadingPlaceholder },
-);
 
 export const metadata: Metadata = {
   title: "AquaFund | Transparent Web3 Fundraising for Water Impact",

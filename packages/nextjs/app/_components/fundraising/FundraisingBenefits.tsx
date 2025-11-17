@@ -26,7 +26,7 @@ export default function FundraisingBenefits() {
           AquaFund makes water fundraisers effortless, trustless, and crystal-clear.
         </h3>
         <div className="flex flex-col md:flex-row m-auto justify-center gap-4 w-full max-w-5xl">
-          {benefits.map((b, i) => (
+          {benefits.map((b) => (
             <div
               key={b.title}
               className="flex gap-4 text-start items-center px-6   justify-center  align-middle bg-[#FFFDFA24] border border-[#CAC4D0] rounded-xl min-w-[220px] min-h-[102px]"
