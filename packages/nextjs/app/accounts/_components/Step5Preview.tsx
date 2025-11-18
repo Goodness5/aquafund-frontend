@@ -19,8 +19,8 @@ export default function Step5Preview({ formData }: Step5PreviewProps) {
     onEdit: () => void;
   }) => {
     return (
-      <div className="border-2 border-[#CAC4D0] rounded-lg p-3">
-        <div className="flex items-center justify-between mb-2">
+      <div className="rounded-lg p-3 bg-white" style={{ boxShadow: "inset 0 2px 4px #CAC4D04D" }}>
+        <div className="flex items-center justify-between mb-3 pb-2" style={{ borderBottom: "1px solid #CAC4D04D" }}>
           <h4 style={{ fontSize: "1em" }} className="font-semibold text-[#001627]">
             {title}
           </h4>
@@ -33,10 +33,15 @@ export default function Step5Preview({ formData }: Step5PreviewProps) {
             <span>Edit</span>
           </button>
         </div>
-        <div className="space-y-1.5">
-          {Object.entries(data).map(([key, value]) => (
-            <div key={key} style={{ fontSize: "0.85em" }} className="text-[#475068]">
-              <span className="font-medium">{key}:</span> {value || "Not provided"}
+        <div className="space-y-2">
+          {Object.entries(data).map(([key, value], index) => (
+            <div key={key}>
+              <div style={{ fontSize: "0.85em" }} className="text-[#475068]">
+                <span className="font-medium">{key}:</span> {value || "Not provided"}
+              </div>
+              {index < Object.entries(data).length - 1 && (
+                <div className="h-px mt-2" style={{ backgroundColor: "#CAC4D04D" }}></div>
+              )}
             </div>
           ))}
         </div>
@@ -45,7 +50,7 @@ export default function Step5Preview({ formData }: Step5PreviewProps) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="w-full h-px bg-[#0350B5] mb-3"></div>
 
       <InfoCard

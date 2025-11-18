@@ -84,12 +84,12 @@ export default function Step3Documents({
           Certificate of Registration
         </label>
         {certificatePreview ? (
-          <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
+          <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
             <Image
               src={certificatePreview}
               alt="Certificate"
               fill
-              className="object-cover"
+              className="object-contain"
             />
             <button
               type="button"
@@ -127,12 +127,12 @@ export default function Step3Documents({
           NGO Logo
         </label>
         {logoPreview ? (
-          <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
+          <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
             <Image
               src={logoPreview}
               alt="Logo"
               fill
-              className="object-cover"
+              className="object-contain"
             />
             <button
               type="button"
@@ -170,12 +170,12 @@ export default function Step3Documents({
           Admin Identity Verification
         </label>
         {idPreview ? (
-          <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
+          <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-[#CAC4D0]">
             <Image
               src={idPreview}
               alt="ID"
               fill
-              className="object-cover"
+              className="object-contain"
             />
             <button
               type="button"

@@ -217,12 +217,11 @@ export default function GetStartedPage() {
 
       localStorage.removeItem(STORAGE_KEY);
       
-      // Redirect based on where they came from
-      if (projectTitle) {
-        router.push("/fundraiser/create");
-      } else {
-        router.push("/dashboard");
-      }
+      // Redirect to account under review page
+      const reviewUrl = projectTitle
+        ? `/accounts/under-review?project=${encodeURIComponent(projectTitle)}`
+        : "/accounts/under-review";
+      router.push(reviewUrl);
     } catch (error) {
       console.error("Failed to submit:", error);
       alert("Failed to submit organization data. Please try again.");
