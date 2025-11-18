@@ -3,31 +3,19 @@
 import { useState } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import { FundraiserFormData } from "../create/page";
+import { useCountries } from "../../../hooks/useCountries";
 
 interface Step1LocationProps {
   formData: FundraiserFormData;
   updateFormData: (updates: Partial<FundraiserFormData>) => void;
 }
 
-const countries = [
-  "Select country",
-  "Nigeria",
-  "Kenya",
-  "Ghana",
-  "Tanzania",
-  "Uganda",
-  "Ethiopia",
-  "South Africa",
-  "Zambia",
-  "Malawi",
-  "Mozambique",
-];
-
 export default function Step1Location({
   formData,
   updateFormData,
 }: Step1LocationProps) {
   const [showMapHint, setShowMapHint] = useState(false);
+  const { countries, loading } = useCountries();
 
   return (
     <div className="space-y-3">
@@ -40,12 +28,13 @@ export default function Step1Location({
           <select
             value={formData.country}
             onChange={(e) => updateFormData({ country: e.target.value })}
+            disabled={loading}
             style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}
-            className="w-full border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors appearance-none bg-white"
+            className="w-full border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors appearance-none bg-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {countries.map((country) => (
               <option key={country} value={country === "Select country" ? "" : country}>
-                {country}
+                {loading && country === "Select country" ? "Loading countries..." : country}
               </option>
             ))}
           </select>

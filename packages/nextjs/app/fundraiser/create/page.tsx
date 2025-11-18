@@ -121,7 +121,9 @@ export default function CreateFundraiserPage() {
     // Check if user needs to authenticate before proceeding (step 2+ or on submit)
     // User needs both wallet connection AND NGO account authentication
     if (!isAuthenticated && (currentStep >= 2 || currentStep === TOTAL_STEPS)) {
-      setShowAccountModal(true);
+      // Redirect to get-started page with project title
+      const projectTitle = formData.campaignTitle || "Untitled Project";
+      window.location.href = `/accounts/get-started?project=${encodeURIComponent(projectTitle)}`;
       return;
     }
 

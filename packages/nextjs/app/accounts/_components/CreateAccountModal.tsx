@@ -7,7 +7,7 @@ import { Button } from "../../_components/Button";
 
 interface CreateAccountModalProps {
   onClose: () => void;
-  onAccountCreated: () => void;
+  onAccountCreated: (email?: string) => void;
 }
 
 const AUTH_TOKEN_KEY = "aquafund-auth-token";
@@ -19,13 +19,18 @@ export default function CreateAccountModal({
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const createAccount = async (walletAddress?: string, email?: string) => {
+  const createAccount = async (email?: string) => {
+    if (!email) {
+      alert("Please enter your email address");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch("/api/accounts/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress, email }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
@@ -36,7 +41,8 @@ export default function CreateAccountModal({
       const data = await response.json();
       if (data.token) {
         localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-        onAccountCreated();
+        // Only call onAccountCreated after successful account creation
+        onAccountCreated(email);
       } else {
         throw new Error("No token received from server");
       }
@@ -52,13 +58,17 @@ export default function CreateAccountModal({
   const handleGoogleSignIn = async () => {
     // TODO: Implement Google OAuth
     console.log("Google sign in");
-    // After OAuth success, call createAccount
-    // await createAccount(undefined, googleEmail);
+    // After OAuth success, call createAccount with email
+    // const googleEmail = await getGoogleEmail();
+    // await createAccount(googleEmail);
   };
 
   const handleEmailContinue = async () => {
-    if (!email) return;
-    await createAccount(undefined, email);
+    if (!email) {
+      alert("Please enter your email address");
+      return;
+    }
+    await createAccount(email);
   };
 
   return (
