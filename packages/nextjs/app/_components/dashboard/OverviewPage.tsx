@@ -11,6 +11,7 @@ import MetricsCards from "./MetricsCards";
 const DonationTrendsChart = lazy(() => import("./DonationTrendsChart"));
 const DonationSourcesChart = lazy(() => import("./DonationSourcesChart"));
 const RecentDonationsTable = lazy(() => import("./RecentDonationsTable"));
+const ActiveFundraiser = lazy(() => import("./ActiveFundraiser"));
 
 // Loading skeleton component
 const ChartSkeleton = () => (
@@ -77,8 +78,18 @@ export default function OverviewPage() {
         </div>
       </FadeInSection>
 
-      {/* Recent Donations */}
+      {/* Active Fundraiser */}
       <FadeInSection delay={400}>
+        <div className="mb-6">
+          <h2 className="text-xl lg:text-2xl font-semibold text-[#001627] mb-4">Active Fundraiser</h2>
+          <Suspense fallback={<div className="bg-white rounded-xl p-6 shadow-inner animate-pulse h-48"></div>}>
+            <ActiveFundraiser />
+          </Suspense>
+        </div>
+      </FadeInSection>
+
+      {/* Recent Donations */}
+      <FadeInSection delay={500}>
         <Suspense fallback={<TableSkeleton />}>
           <RecentDonationsTable />
         </Suspense>
