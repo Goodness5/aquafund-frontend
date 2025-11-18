@@ -151,6 +151,32 @@ html, body {
   transform: scaleY(-1);
 }
 
+.fundraiser-form-bg-box {
+  position: relative;
+  background-color: #1BABEE33;
+  background-image: url('/background-noise.svg');
+  background-blend-mode: screen;
+  background-repeat: repeat;
+}
+
+.fundraiser-form-bg-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, #FFFAEE 0%, #1BABEE33 50%, #FFFAEE 100%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fundraiser-form-bg-box > * {
+  position: relative;
+  z-index: 1;
+}
+
 .become-donor-bg-box > *, .footer-bg-box > * {
   position: relative;
   z-index: 1;

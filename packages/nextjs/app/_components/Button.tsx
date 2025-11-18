@@ -12,7 +12,7 @@ export function Button({ children, variant = "default", size = "default", classN
     "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
   const variants = {
-    default: "bg-[#4A90E2] text-white hover:bg-[#3a7bc8] focus-visible:ring-[#4A90E2]",
+    default: "bg-[#4A90E2]  hover:bg-[#3a7bc8] focus-visible:ring-[#4A90E2]",
     link: "text-[#4A90E2] hover:underline focus-visible:ring-[#4A90E2]",
   };
 

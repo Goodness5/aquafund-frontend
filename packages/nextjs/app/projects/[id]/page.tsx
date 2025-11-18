@@ -24,6 +24,7 @@ interface ProjectData {
   location?: string;
   organizer?: {
     name: string;
+    username?: string;
     profilePicture?: string;
     address?: string;
   };
@@ -34,6 +35,16 @@ interface ProjectData {
     content: string;
   }>;
   reactions?: number;
+}
+
+// Helper function to convert name to username (slug format)
+function nameToUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 // Component to render rich text content from text editors
@@ -96,6 +107,7 @@ export default function ProjectDetail() {
     location: "Orile-Owu, Osun State, Nigeria",
     organizer: {
       name: "The Faithful Carers",
+      username: "the-faithful-carers",
       profilePicture: "/avatar1.svg",
       address: "0x1234567890123456789012345678901234567890",
     },
@@ -286,24 +298,27 @@ export default function ProjectDetail() {
 
             {/* Organizer Info */}
             {projectData?.organizer && (
-              <div className="flex items-center gap-3">
+              <Link
+                href={`/ngo/${projectData.organizer.username || nameToUsername(projectData.organizer.name)}`}
+                className="flex items-center gap-3 group"
+              >
                 {projectData.organizer.profilePicture ? (
                   <Image
                     src={projectData.organizer.profilePicture}
                     alt={projectData.organizer.name}
                     width={40}
                     height={40}
-                    className="rounded-full object-cover"
+                    className="rounded-full object-cover group-hover:ring-2 group-hover:ring-[#0350B5] transition-all"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#0350B5] flex items-center justify-center text-white font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-[#0350B5] flex items-center justify-center text-white font-semibold group-hover:ring-2 group-hover:ring-[#0350B5] transition-all">
                     {projectData.organizer.name.charAt(0)}
                   </div>
                 )}
-                <Link href="#" className="text-[#0350B5] hover:underline font-medium text-base">
+                <span className="text-[#0350B5] hover:underline font-medium text-base">
                   {projectData.organizer.name}
-                </Link>
-              </div>
+                </span>
+              </Link>
             )}
 
             {/* Location */}
