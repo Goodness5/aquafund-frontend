@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { 
@@ -13,10 +13,12 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   WalletIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ShieldCheckIcon
 } from "@heroicons/react/24/outline";
 import { useAccount, useDisconnect } from "wagmi";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
+import { isAdmin } from "~~/utils/auth";
 
 interface DashboardHeaderProps {
   onMenuClick?: () => void;
@@ -39,12 +41,18 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
   
   const notificationsRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useOutsideClick(notificationsRef, () => setNotificationsOpen(false));
   useOutsideClick(profileRef, () => setProfileOpen(false));
+
+  // Check if user is admin
+  useEffect(() => {
+    setUserIsAdmin(isAdmin());
+  }, []);
 
   // Mock notifications
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -290,6 +298,16 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                     <DocumentTextIcon className="w-5 h-5 text-[#475068]" />
                     <span>Reports</span>
                   </Link>
+                  {userIsAdmin && (
+                    <Link
+                      href="/adminDashboard"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-[#001627] hover:bg-[#F5F5F5] transition-colors"
+                    >
+                      <ShieldCheckIcon className="w-5 h-5 text-[#475068]" />
+                      <span>Admin Dashboard</span>
+                    </Link>
+                  )}
                   <div className="border-t border-[#E0E7EF] my-2"></div>
                   <button
                     onClick={handleLogout}

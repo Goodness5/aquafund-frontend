@@ -21,58 +21,190 @@ export default function Step3Documents({
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
 
-  // Load previews from existing files
+  // Helper function to check if value is a File or Blob
+  const isFileOrBlob = (value: unknown): value is File | Blob => {
+    return value instanceof File || value instanceof Blob;
+  };
+
+  // Load previews from existing files or base64 strings
   useEffect(() => {
-    if (formData.certificateOfRegistration) {
+    // Use base64 strings if available (from localStorage), otherwise read from File objects
+    if (formData.certificateOfRegistrationBase64) {
+      setCertificatePreview(formData.certificateOfRegistrationBase64);
+    } else if (formData.certificateOfRegistration && isFileOrBlob(formData.certificateOfRegistration)) {
       const reader = new FileReader();
       reader.onloadend = () => setCertificatePreview(reader.result as string);
       reader.readAsDataURL(formData.certificateOfRegistration);
     }
-    if (formData.ngoLogo) {
+    
+    if (formData.ngoLogoBase64) {
+      setLogoPreview(formData.ngoLogoBase64);
+    } else if (formData.ngoLogo && isFileOrBlob(formData.ngoLogo)) {
       const reader = new FileReader();
       reader.onloadend = () => setLogoPreview(reader.result as string);
       reader.readAsDataURL(formData.ngoLogo);
     }
-    if (formData.adminIdentityVerification) {
+    
+    if (formData.adminIdentityVerificationBase64) {
+      setIdPreview(formData.adminIdentityVerificationBase64);
+    } else if (formData.adminIdentityVerification && isFileOrBlob(formData.adminIdentityVerification)) {
       const reader = new FileReader();
       reader.onloadend = () => setIdPreview(reader.result as string);
       reader.readAsDataURL(formData.adminIdentityVerification);
     }
-  }, [formData.certificateOfRegistration, formData.ngoLogo, formData.adminIdentityVerification]);
+  }, [
+    formData.certificateOfRegistration, 
+    formData.certificateOfRegistrationBase64,
+    formData.ngoLogo, 
+    formData.ngoLogoBase64,
+    formData.adminIdentityVerification,
+    formData.adminIdentityVerificationBase64
+  ]);
 
-  const handleFileUpload = (
+  // Helper function to compress image
+  // Using aggressive compression to reduce payload size: 800x800 max, 0.5 quality
+  const compressImage = (file: File, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.5): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img') as HTMLImageElement;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Calculate new dimensions
+          if (width > height) {
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: "certificate" | "logo" | "id"
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "certificate") {
-          setCertificatePreview(reader.result as string);
-          updateFormData({ certificateOfRegistration: file });
-        } else if (type === "logo") {
-          setLogoPreview(reader.result as string);
-          updateFormData({ ngoLogo: file });
-        } else {
-          setIdPreview(reader.result as string);
-          updateFormData({ adminIdentityVerification: file });
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Compress image before storing
+        const compressedFile = await compressImage(file);
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          if (type === "certificate") {
+            setCertificatePreview(base64String);
+            updateFormData({ 
+              certificateOfRegistration: compressedFile,
+              certificateOfRegistrationBase64: base64String 
+            });
+          } else if (type === "logo") {
+            setLogoPreview(base64String);
+            updateFormData({ 
+              ngoLogo: compressedFile,
+              ngoLogoBase64: base64String 
+            });
+          } else {
+            setIdPreview(base64String);
+            updateFormData({ 
+              adminIdentityVerification: compressedFile,
+              adminIdentityVerificationBase64: base64String 
+            });
+          }
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('Failed to compress image:', error);
+        // Fallback to original file if compression fails
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          if (type === "certificate") {
+            setCertificatePreview(base64String);
+            updateFormData({ 
+              certificateOfRegistration: file,
+              certificateOfRegistrationBase64: base64String 
+            });
+          } else if (type === "logo") {
+            setLogoPreview(base64String);
+            updateFormData({ 
+              ngoLogo: file,
+              ngoLogoBase64: base64String 
+            });
+          } else {
+            setIdPreview(base64String);
+            updateFormData({ 
+              adminIdentityVerification: file,
+              adminIdentityVerificationBase64: base64String 
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
   const removeFile = (type: "certificate" | "logo" | "id") => {
     if (type === "certificate") {
       setCertificatePreview(null);
-      updateFormData({ certificateOfRegistration: undefined });
+      updateFormData({ 
+        certificateOfRegistration: undefined,
+        certificateOfRegistrationBase64: undefined 
+      });
     } else if (type === "logo") {
       setLogoPreview(null);
-      updateFormData({ ngoLogo: undefined });
+      updateFormData({ 
+        ngoLogo: undefined,
+        ngoLogoBase64: undefined 
+      });
     } else {
       setIdPreview(null);
-      updateFormData({ adminIdentityVerification: undefined });
+      updateFormData({ 
+        adminIdentityVerification: undefined,
+        adminIdentityVerificationBase64: undefined 
+      });
     }
   };
 

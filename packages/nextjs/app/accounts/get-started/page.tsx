@@ -40,6 +40,10 @@ export interface NGOAccountData {
   certificateOfRegistration?: File;
   ngoLogo?: File;
   adminIdentityVerification?: File;
+  // Base64 strings for persistence and submission
+  certificateOfRegistrationBase64?: string;
+  ngoLogoBase64?: string;
+  adminIdentityVerificationBase64?: string;
 }
 
 const initialFormData: NGOAccountData = {
@@ -77,21 +81,22 @@ export default function GetStartedPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check authentication status - only check once on mount
+  // Check authentication status and load user email - only check once on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       const authenticated = !!token;
+      
       setIsAuthenticated(authenticated);
-      // Only hide modal if already authenticated, otherwise keep it open
-      if (authenticated) {
-        setShowAccountModal(false);
-      } else {
-        // Not authenticated - keep modal open
-        setShowAccountModal(true);
+      setShowAccountModal(!authenticated); // Show modal only if NOT authenticated
+      
+      // Load user email from localStorage if available (from login)
+      const storedEmail = localStorage.getItem("aquafund-user-email");
+      if (storedEmail) {
+        updateFormData({ email: storedEmail });
       }
     }
-  }, []);
+  }, []); // Only run once on mount - no unnecessary re-checks
 
   // Check if coming from project creation
   useEffect(() => {
@@ -106,7 +111,7 @@ export default function GetStartedPage() {
     if (address && !formData.walletAddress) {
       updateFormData({ walletAddress: address });
     }
-  }, [address]);
+  }, [address, formData.walletAddress]);
 
   // Load saved progress from localStorage
   useEffect(() => {
@@ -114,7 +119,16 @@ export default function GetStartedPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setFormData(parsed.data);
+        // Clear File object references since they can't be serialized/deserialized
+        // Only keep base64 strings which are the actual data we need
+        const loadedData = {
+          ...parsed.data,
+          // Remove File object metadata (they're not real File objects after JSON.parse)
+          certificateOfRegistration: parsed.data.certificateOfRegistrationBase64 ? undefined : parsed.data.certificateOfRegistration,
+          ngoLogo: parsed.data.ngoLogoBase64 ? undefined : parsed.data.ngoLogo,
+          adminIdentityVerification: parsed.data.adminIdentityVerificationBase64 ? undefined : parsed.data.adminIdentityVerification,
+        };
+        setFormData(loadedData);
         setCurrentStep(parsed.step || 1);
         if (parsed.projectTitle) {
           setProjectTitle(parsed.projectTitle);
@@ -241,32 +255,69 @@ export default function GetStartedPage() {
 
     setIsSubmitting(true);
     try {
-      // Create FormData to handle file uploads
-      const submitData = new FormData();
-
-      // Map to Project model fields ONLY
-      // Project model: title, description, images, fundingGoal, creatorId, locationId
-      
-      // title: String (required)
-      submitData.append("title", projectTitle || formData.organizationName || "");
-      
-      // description: String (required) - use missionStatement
-      submitData.append("description", formData.missionStatement || "");
-      
-      // creatorId: String (required) - use wallet address
-      submitData.append("creatorId", formData.walletAddress || "");
-      
-      // fundingGoal: Float (required, must be positive)
-      // Default to 1 if not provided or if 0 (backend requires positive number)
-      const fundingGoal = formData.fundingGoal && formData.fundingGoal > 0 ? formData.fundingGoal : 1;
-      submitData.append("fundingGoal", String(fundingGoal));
-      
-      // images: String[] - convert files to base64 strings
-      const imagePromises: Promise<string>[] = [];
-      
       // Helper function to check if value is a File or Blob
       const isFileOrBlob = (value: unknown): value is File | Blob => {
         return value instanceof File || value instanceof Blob;
+      };
+      
+      // Helper function to compress image before converting to base64
+      // Using aggressive compression to reduce payload size: 800x800 max, 0.5 quality
+      const compressImage = (file: File | Blob, maxWidth: number = 800, maxHeight: number = 800, quality: number = 0.5): Promise<File> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = document.createElement('img') as HTMLImageElement;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+
+              // Calculate new dimensions
+              if (width > height) {
+                if (width > maxWidth) {
+                  height = (height * maxWidth) / width;
+                  width = maxWidth;
+                }
+              } else {
+                if (height > maxHeight) {
+                  width = (width * maxHeight) / height;
+                  height = maxHeight;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                reject(new Error('Failed to get canvas context'));
+                return;
+              }
+
+              ctx.drawImage(img, 0, 0, width, height);
+
+              canvas.toBlob(
+                (blob) => {
+                  if (!blob) {
+                    reject(new Error('Failed to compress image'));
+                    return;
+                  }
+                  const compressedFile = new File([blob], file instanceof File ? file.name : 'image.jpg', {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                  });
+                  resolve(compressedFile);
+                },
+                'image/jpeg',
+                quality
+              );
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = e.target?.result as string;
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
       };
       
       // Helper function to convert file to base64
@@ -279,61 +330,121 @@ export default function GetStartedPage() {
         });
       };
       
-      if (formData.ngoLogo && isFileOrBlob(formData.ngoLogo)) {
-        imagePromises.push(fileToBase64(formData.ngoLogo));
+      // Collect base64 images - compress and convert to base64
+      const imagePromises: Promise<string>[] = [];
+      
+      // Process each image: compress if it's a File, then convert to base64
+      if (formData.ngoLogo) {
+        if (isFileOrBlob(formData.ngoLogo)) {
+          // Compress and convert File to base64
+          const compressed = await compressImage(formData.ngoLogo);
+          imagePromises.push(fileToBase64(compressed));
+        } else if (formData.ngoLogoBase64) {
+          // Use existing base64 string (already compressed)
+          imagePromises.push(Promise.resolve(formData.ngoLogoBase64));
+        }
       }
-      if (formData.certificateOfRegistration && isFileOrBlob(formData.certificateOfRegistration)) {
-        imagePromises.push(fileToBase64(formData.certificateOfRegistration));
+      
+      if (formData.certificateOfRegistration) {
+        if (isFileOrBlob(formData.certificateOfRegistration)) {
+          // Compress and convert File to base64
+          const compressed = await compressImage(formData.certificateOfRegistration);
+          imagePromises.push(fileToBase64(compressed));
+        } else if (formData.certificateOfRegistrationBase64) {
+          // Use existing base64 string (already compressed)
+          imagePromises.push(Promise.resolve(formData.certificateOfRegistrationBase64));
+        }
       }
-      if (formData.adminIdentityVerification && isFileOrBlob(formData.adminIdentityVerification)) {
-        imagePromises.push(fileToBase64(formData.adminIdentityVerification));
+      
+      if (formData.adminIdentityVerification) {
+        if (isFileOrBlob(formData.adminIdentityVerification)) {
+          // Compress and convert File to base64
+          const compressed = await compressImage(formData.adminIdentityVerification);
+          imagePromises.push(fileToBase64(compressed));
+        } else if (formData.adminIdentityVerificationBase64) {
+          // Use existing base64 string (already compressed)
+          imagePromises.push(Promise.resolve(formData.adminIdentityVerificationBase64));
+        }
       }
       
       // Wait for all images to be converted to base64
-      const imageStrings = await Promise.all(imagePromises);
+      const allImages = await Promise.all(imagePromises);
       
       // Backend requires at least 1 image
-      if (imageStrings.length === 0) {
+      if (allImages.length === 0) {
         throw new Error("At least one image is required. Please upload at least one document (NGO Logo, Certificate, or ID).");
       }
       
-      // Append each image as a string
-      imageStrings.forEach((imageString) => {
-        submitData.append("images", imageString);
-      });
+      // Limit to 2 images maximum to avoid 413 Payload Too Large errors
+      // Base64 encoding increases size by ~33%, so we limit to prevent payload size issues
+      const orgImages = allImages.slice(0, 2);
       
-      // Debug: Log what we're sending (excluding base64 images for readability)
-      const formDataEntries: Record<string, string> = {};
-      submitData.forEach((value, key) => {
-        if (key === "images") {
-          formDataEntries[key] = `[base64 string - ${(value as string).substring(0, 50)}...]`;
-        } else {
-          formDataEntries[key] = value as string;
-        }
-      });
-      console.log("Submitting data:", formDataEntries);
+      // Calculate approximate payload size (base64 strings are ~33% larger than original)
+      const totalSize = orgImages.reduce((sum, img) => sum + img.length, 0);
+      const sizeInMB = (totalSize / 1024 / 1024).toFixed(2);
+      console.log(`Sending ${orgImages.length} images, total size: ~${sizeInMB}MB`);
       
-      // locationId: String? (optional) - use countryOfOperation (backend may need to create/link Location)
-      if (formData.countryOfOperation) {
-        submitData.append("locationId", formData.countryOfOperation);
+      if (totalSize > 5 * 1024 * 1024) { // 5MB warning
+        console.warn("Payload size is large, may cause 413 error. Consider reducing image count or size.");
       }
-      
-      // NOTE: Backend only accepts Project model fields. NGO account fields are rejected.
 
+      // Get userId from localStorage (stored during account creation/login)
+      const storedUserId = typeof window !== "undefined" ? localStorage.getItem("aquafund-user-id") : null;
+      const userId = storedUserId || "";
+
+      // Get email from formData or localStorage (stored during login)
+      const storedEmail = typeof window !== "undefined" ? localStorage.getItem("aquafund-user-email") : null;
+      const emailAddress = formData.email || storedEmail || "";
+      
+      if (!emailAddress) {
+        throw new Error("Email address is required. Please ensure you are logged in.");
+      }
+
+      // Convert yearEstablished to number
+      const yearEstablished = parseInt(formData.yearEstablished, 10);
+      if (isNaN(yearEstablished) || yearEstablished < 1800 || yearEstablished > new Date().getFullYear()) {
+        throw new Error("Please enter a valid year established.");
+      }
+
+      // Prepare NGO data according to API requirements
+      const ngoData = {
+        organizationName: formData.organizationName,
+        yearEstablished: yearEstablished,
+        countryOfOperation: formData.countryOfOperation,
+        ngoIdentificationNumber: formData.ngoRegistrationNumber,
+        emailAddress: emailAddress,
+        missionStatement: formData.missionStatement,
+        websiteOrSocialLinks: formData.websiteSocialLinks,
+        contactPersonName: formData.contactPersonName,
+        contactPersonPosition: formData.position,
+        contactPersonPhoneNumber: formData.phoneNumber,
+        contactPersonResidentialAddress: formData.residentialAddress,
+        contactPersonEmailAddress: formData.contactEmail,
+        orgImages: orgImages,
+        connectedWallet: formData.walletAddress,
+        userId: userId,
+      };
+
+      console.log("Submitting NGO data:", {
+        ...ngoData,
+        orgImages: orgImages.map(img => `[base64 string - ${img.substring(0, 50)}...]`),
+      });
+      
       // Get auth token for authentication
       const token = typeof window !== "undefined" ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
       
-      // Submit organization data via API
-      // Note: Don't set Content-Type header when sending FormData - browser sets it automatically with boundary
-      const headers: HeadersInit = {};
+      // Submit NGO data via API
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const response = await fetch("/api/projects", {
+      const response = await fetch("/api/v1/ngos", {
         method: "POST",
         headers,
-        body: submitData, // FormData - browser will automatically set Content-Type with boundary
+        body: JSON.stringify(ngoData),
       });
 
       // Parse response
@@ -365,7 +476,7 @@ export default function GetStartedPage() {
       }
 
       console.log("Account submitted successfully:", result);
-      alert("Account submitted successfully");
+      alert("NGO Information submitted successfully, please wait for review.");
 
       // Clear saved progress
       localStorage.removeItem(STORAGE_KEY);
@@ -435,11 +546,14 @@ export default function GetStartedPage() {
     }
   };
 
-  // Always show modal first if it's open
+  // Show modal only if user is not authenticated
   if (showAccountModal) {
     return (
       <CreateAccountModal
-        onClose={() => router.push("/")}
+        onClose={() => {
+          // User closed modal without logging in - redirect to home
+          router.push("/");
+        }}
         onAccountCreated={handleAccountCreated}
       />
     );

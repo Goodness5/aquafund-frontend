@@ -1,57 +1,107 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { XMarkIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
+import { AUTH_TOKEN_KEY, USER_ROLE_KEY } from "~~/utils/auth";
 
 interface CreateAccountModalProps {
   onClose: () => void;
   onAccountCreated: (email?: string) => void;
 }
 
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
+type Step = "form" | "success";
 
 export default function CreateAccountModal({
   onClose,
   onAccountCreated,
 }: CreateAccountModalProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const createAccount = async (email?: string) => {
+  const createAccount = async () => {
+    // Validate email
     if (!email) {
-      alert("Please enter your email address");
+      setError("Please enter your email address");
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate password
+    if (!password) {
+      setError("Please enter a password");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
       return;
     }
 
     setLoading(true);
+    setError("");
     try {
-      const response = await fetch("/api/accounts/create", {
+      const response = await fetch("/api/v1/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create account");
+        // Try to parse error as JSON, fallback to status text if not JSON
+        let errorMessage = "Failed to create account";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Failed to create account: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      // If account was created successfully, proceed to success step
+      // Token is optional - store it if provided, but don't block on it
       if (data.token) {
         localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-        // Show success state first
-        setIsSuccess(true);
-        // Don't call onAccountCreated yet - wait for user to click continue after seeing success
-      } else {
-        throw new Error("No token received from server");
       }
+      
+      // Store user ID if provided (needed for NGO submission)
+      if (data.user?.id || data.userId || data.id) {
+        localStorage.setItem("aquafund-user-id", data.user?.id || data.userId || data.id);
+      }
+      
+      // Store user email for NGO form submission
+      const userEmail = data.user?.email || data.email || email;
+      if (userEmail) {
+        localStorage.setItem("aquafund-user-email", userEmail);
+      }
+      
+      // Store user role if provided
+      const userRole = data.user?.role || data.role;
+      if (userRole) {
+        localStorage.setItem(USER_ROLE_KEY, userRole);
+      }
+      
+      // Account created successfully, move to success step
+      setStep("success");
     } catch (error) {
       console.error("Failed to create account:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to create account. Please try again.";
-      alert(errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,23 +110,20 @@ export default function CreateAccountModal({
   const handleGoogleSignIn = async () => {
     // TODO: Implement Google OAuth
     console.log("Google sign in");
-    // After OAuth success, call createAccount with email
+    // After OAuth success, call createAccount with email and password
     // const googleEmail = await getGoogleEmail();
-    // await createAccount(googleEmail);
+    // await createAccount();
   };
 
-  const handleEmailContinue = async () => {
-    if (isSuccess) {
+  const handleContinue = async () => {
+    if (step === "success") {
       // After success, continue to next step
       onAccountCreated(email);
       return;
     }
     
-    if (!email) {
-      alert("Please enter your email address");
-      return;
-    }
-    await createAccount(email);
+    // Create account with email and password
+    await createAccount();
   };
 
   return (
@@ -92,7 +139,7 @@ export default function CreateAccountModal({
           </button>
         </div>
 
-        {isSuccess ? (
+        {step === "success" ? (
           <>
             {/* Success State */}
             <div className="flex flex-col items-center mb-6">
@@ -100,52 +147,20 @@ export default function CreateAccountModal({
                 <CheckCircleIcon className="w-12 h-12 sm:w-16 sm:h-16 text-[#00BF3C]" />
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-[#001627] mb-2">
-                Verification Successful!
+                Account Created Successfully!
               </h3>
               <p className="text-sm sm:text-base text-[#475068] text-center mb-6">
-                Login to your account to continue.
+                Your account has been created. Click continue to proceed.
               </p>
             </div>
-
-            {/* Divider */}
-            <div className="relative mb-3 sm:mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#CAC4D0]"></div>
-              </div>
-              <div className="relative flex justify-center text-xs sm:text-sm">
-                <span className="px-2 bg-white text-[#475068]">or</span>
-              </div>
-            </div>
-
-            {/* Email Input */}
-            <div className="mb-4 sm:mb-6">
-              <label className="block text-xs sm:text-sm font-medium text-[#475068] mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your NGO's email address"
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors"
-              />
-            </div>
-
-            {/* Terms */}
-            <p className="text-xs text-[#475068] mb-4 sm:mb-6 text-center leading-relaxed">
-              By clicking continue, you agree to our{" "}
-              <a href="/terms" className="text-[#0350B5] hover:underline">
-                terms and conditions
-              </a>
-            </p>
 
             {/* Continue Button */}
             <Button
               size="lg"
               rounded="full"
               className="w-full bg-[#0350B5] text-white hover:bg-[#034093]"
-              onClick={handleEmailContinue}
-              disabled={!email || loading}
+              onClick={handleContinue}
+              disabled={loading}
             >
               Continue
             </Button>
@@ -188,6 +203,13 @@ export default function CreateAccountModal({
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Email Input */}
             <div className="mb-4 sm:mb-6">
               <label className="block text-xs sm:text-sm font-medium text-[#475068] mb-2">
@@ -196,9 +218,31 @@ export default function CreateAccountModal({
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
                 placeholder="Enter your NGO's email address"
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Password Input */}
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-xs sm:text-sm font-medium text-[#475068] mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                placeholder="Enter your password (min. 6 characters)"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors"
+                disabled={loading}
               />
             </div>
 
@@ -214,12 +258,26 @@ export default function CreateAccountModal({
             <Button
               size="lg"
               rounded="full"
-              className="w-full bg-[#0350B5] text-white hover:bg-[#034093]"
-              onClick={handleEmailContinue}
-              disabled={!email || loading}
+              className="w-full bg-[#0350B5] text-white hover:bg-[#034093] mb-3"
+              onClick={handleContinue}
+              disabled={!email || !password || loading}
             >
-              {loading ? "Creating Account..." : "Continue"}
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
+
+            {/* Login Link */}
+            <p className="text-xs sm:text-sm text-[#475068] text-center">
+              Already have an account?{" "}
+              <button
+                onClick={() => {
+                  onClose();
+                  router.push("/accounts/login");
+                }}
+                className="text-[#0350B5] hover:underline font-medium"
+              >
+                Login
+              </button>
+            </p>
           </>
         )}
       </div>

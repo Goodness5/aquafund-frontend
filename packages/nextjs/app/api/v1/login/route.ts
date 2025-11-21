@@ -32,15 +32,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate password (minimum length)
-    if (password.length < 6) {
+    // Validate password (should not be empty)
+    if (!password || password.trim().length === 0) {
       return NextResponse.json(
-        { error: "Password must be at least 6 characters long" },
+        { error: "Password is required" },
         { status: 400 }
       );
     }
 
-    const backendEndpoint = `${backendUrl}/users`;
+    const backendEndpoint = `${backendUrl}/login`;
     const res = await fetch(backendEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data, { status: res.status });
     } else {
       // If backend returns non-JSON (like HTML error page), return a proper error
-      const responseText = await res.text();
+      await res.text(); // Consume the response body
       
       // Provide more helpful error message
       let errorMessage = `Backend endpoint not found (404)`;
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create user";
+    const message = error instanceof Error ? error.message : "Failed to login";
     const status = message === "Backend URL not set" ? 500 : 502;
     return NextResponse.json({ error: message }, { status });
   }

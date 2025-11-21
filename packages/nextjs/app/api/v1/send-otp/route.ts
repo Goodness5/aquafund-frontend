@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Validate required fields
-    const { email, password } = body;
+    const { email } = body;
     
-    if (!email || !password) {
+    if (!email) {
       return NextResponse.json(
-        { error: "Missing required fields: email and password are required" },
+        { error: "Missing required field: email is required" },
         { status: 400 }
       );
     }
@@ -32,19 +32,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate password (minimum length)
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters long" },
-        { status: 400 }
-      );
-    }
-
-    const backendEndpoint = `${backendUrl}/users`;
-    const res = await fetch(backendEndpoint, {
+    const res = await fetch(`${backendUrl}/api/v1/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email }),
     });
 
     // Check if response is JSON before parsing
@@ -54,26 +45,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data, { status: res.status });
     } else {
       // If backend returns non-JSON (like HTML error page), return a proper error
-      const responseText = await res.text();
-      
-      // Provide more helpful error message
-      let errorMessage = `Backend endpoint not found (404)`;
-      if (res.status === 404) {
-        errorMessage = `Backend endpoint not found. Please verify that the endpoint exists at: ${backendEndpoint}`;
-      } else {
-        errorMessage = `Backend returned non-JSON response: ${res.status} ${res.statusText}`;
-      }
-      
+      await res.text(); // Consume the response body
       return NextResponse.json(
-        { 
-          error: errorMessage,
-          details: res.status === 404 ? "The backend API endpoint does not exist or the backend URL is incorrect." : undefined
-        },
+        { error: `Backend returned non-JSON response: ${res.status} ${res.statusText}` },
         { status: res.status || 502 }
       );
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create user";
+    const message = error instanceof Error ? error.message : "Failed to send OTP";
     const status = message === "Backend URL not set" ? 500 : 502;
     return NextResponse.json({ error: message }, { status });
   }
