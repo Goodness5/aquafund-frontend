@@ -103,7 +103,7 @@ export function Hero() {
             Donate to Projects
             <ArrowUpRightIcon className="h-4 w-4" />
           </Link>
-          <Link href="/start" className="btn btn-outline btn-wide gap-2">
+          <Link href="/accounts/get-started" className="btn btn-outline btn-wide gap-2">
             Start a Fundraiser
             <ArrowUpRightIcon className="h-4 w-4" />
           </Link>
