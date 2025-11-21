@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronLeftIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
 import CreateAccountModal from "../_components/CreateAccountModal";
+import SetPasswordModal from "../_components/SetPasswordModal";
 import Step1Organization from "../_components/Step1Organization";
 import Step2ContactInfo from "../_components/Step2ContactInfo";
 import Step3Documents from "../_components/Step3Documents";
@@ -71,7 +72,9 @@ export default function GetStartedPage() {
   const [formData, setFormData] = useState<NGOAccountData>(initialFormData);
   const [projectTitle, setProjectTitle] = useState<string | null>(null);
   const [showAccountModal, setShowAccountModal] = useState(true); // Always show modal first
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
 
   // Check authentication status - only check once on mount
   useEffect(() => {
@@ -189,13 +192,20 @@ export default function GetStartedPage() {
   };
 
   const handleAccountCreated = (email?: string) => {
-    setIsAuthenticated(true);
     setShowAccountModal(false);
     // Save email if provided
     if (email) {
+      setUserEmail(email);
       updateFormData({ email });
     }
-    // After account creation, start the form from step 1 (wallet)
+    // Show password modal after account creation
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordSet = () => {
+    setShowPasswordModal(false);
+    setIsAuthenticated(true);
+    // After password is set, start the form from step 1
     setCurrentStep(1);
   };
 
@@ -279,12 +289,23 @@ export default function GetStartedPage() {
     }
   };
 
-  // Always show modal first if it's open
+  // Always show account modal first if not authenticated
   if (showAccountModal) {
     return (
       <CreateAccountModal
         onClose={() => router.push("/")}
         onAccountCreated={handleAccountCreated}
+      />
+    );
+  }
+
+  // Show password modal after account creation
+  if (showPasswordModal) {
+    return (
+      <SetPasswordModal
+        onClose={() => router.push("/")}
+        onPasswordSet={handlePasswordSet}
+        email={userEmail}
       />
     );
   }

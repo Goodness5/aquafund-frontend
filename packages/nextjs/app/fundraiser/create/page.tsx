@@ -4,22 +4,13 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
-import CreateAccountModal from "../../accounts/_components/CreateAccountModal";
 import Step1Location from "../_components/Step1Location";
 import Step2ProjectIdentity from "../_components/Step2ProjectIdentity";
 import Step3TellUsMore from "../_components/Step3TellUsMore";
 import Step4FundManagement from "../_components/Step4FundManagement";
 
 const STORAGE_KEY = "fundraiser-form-progress";
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
 const TOTAL_STEPS = 4;
-
-// Check if user has an authenticated NGO account
-const isNgoAuthenticated = (): boolean => {
-  if (typeof window === "undefined") return false;
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  return !!token; // In production, also validate token with backend
-};
 
 export interface FundraiserFormData {
   // Step 1: Location
@@ -57,16 +48,9 @@ const initialFormData: FundraiserFormData = {
 };
 
 export default function CreateFundraiserPage() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FundraiserFormData>(initialFormData);
-  const [showAccountModal, setShowAccountModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check authentication status
-  useEffect(() => {
-    setIsAuthenticated(isNgoAuthenticated());
-  }, []);
 
   // Load saved progress from localStorage
   useEffect(() => {
@@ -118,15 +102,7 @@ export default function CreateFundraiserPage() {
       return;
     }
 
-    // Check if user needs to authenticate before proceeding (step 2+ or on submit)
-    // User needs both wallet connection AND NGO account authentication
-    if (!isAuthenticated && (currentStep >= 2 || currentStep === TOTAL_STEPS)) {
-      // Redirect to get-started page with project title
-      const projectTitle = formData.campaignTitle || "Untitled Project";
-      window.location.href = `/accounts/get-started?project=${encodeURIComponent(projectTitle)}`;
-      return;
-    }
-
+    // AuthGuard will handle authentication, so we can proceed if we reach here
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -149,17 +125,6 @@ export default function CreateFundraiserPage() {
     // Redirect to success page or dashboard
   };
 
-  const handleAccountCreated = () => {
-    setShowAccountModal(false);
-    setIsAuthenticated(true);
-    // Continue to next step after account creation
-    if (currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      // If on final step, submit the form
-      handleSubmit();
-    }
-  };
 
   const renderStep = () => {
     switch (currentStep) {
@@ -294,14 +259,6 @@ export default function CreateFundraiserPage() {
           </div>
         </div>
       </div>
-
-      {/* Account Creation Modal */}
-      {showAccountModal && (
-        <CreateAccountModal
-          onClose={() => setShowAccountModal(false)}
-          onAccountCreated={handleAccountCreated}
-        />
-      )}
     </div>
   );
 }

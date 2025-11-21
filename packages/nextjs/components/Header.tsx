@@ -95,16 +95,34 @@ export const Header = () => {
               }}
             >
               <HeaderMenuLinks />
+              <li>
+                <Link href="/accounts/sign-in" className="py-1.5 px-3 text-sm">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <Link href="/accounts/get-started" className="py-1.5 px-3 text-sm">
+                  Get Started
+                </Link>
+              </li>
             </ul>
           </details>
           <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
             <HeaderMenuLinks />
           </ul>
         </div>
-        <Link href="/projects" className="btn btn-primary btn-wide gap-2 text-sm">
-          Donate to Projects
-          <ArrowUpRightIcon className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/accounts/sign-in" className="btn btn-ghost btn-sm">
+            Sign In
+          </Link>
+          <Link href="/accounts/get-started" className="btn btn-outline btn-sm">
+            Get Started
+          </Link>
+          <Link href="/projects" className="btn btn-primary btn-wide gap-2 text-sm">
+            Donate to Projects
+            <ArrowUpRightIcon className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </div>
   );
