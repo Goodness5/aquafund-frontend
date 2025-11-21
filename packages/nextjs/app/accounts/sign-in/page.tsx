@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Button } from "../../../_components/Button";
+import { Button } from "../../_components/Button";
 
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
+const AUTH_TOKEN_KEY = "access_token";
 
 export default function SignInPage() {
   const router = useRouter();

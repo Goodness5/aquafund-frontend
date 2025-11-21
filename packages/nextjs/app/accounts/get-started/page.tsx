@@ -14,10 +14,11 @@ import Step4Wallet from "../_components/Step4Wallet";
 import Step5Preview from "../_components/Step5Preview";
 
 const STORAGE_KEY = "ngo-account-progress";
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
+const AUTH_TOKEN_KEY = "access_token";
 const TOTAL_STEPS = 5; // Form steps: Organization, Contact Info, Documents, Wallet, Preview
 
 export interface NGOAccountData {
+  fundingGoal: number;
   // Email (handled in modal)
   email: string;
 
@@ -43,9 +44,11 @@ export interface NGOAccountData {
 }
 
 const initialFormData: NGOAccountData = {
+  // fundingGoal: 0,
   email: "",
   walletAddress: "",
   organizationName: "",
+  fundingGoal: 0,
   yearEstablished: "",
   countryOfOperation: "",
   ngoRegistrationNumber: "",
@@ -75,22 +78,25 @@ export default function GetStartedPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check authentication status - only check once on mount
+  // Check authentication status - redirect to dashboard if already authenticated
   useEffect(() => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       const authenticated = !!token;
       setIsAuthenticated(authenticated);
-      // Only hide modal if already authenticated, otherwise keep it open
+      
+      // If already authenticated, redirect to dashboard
       if (authenticated) {
-        setShowAccountModal(false);
-      } else {
-        // Not authenticated - keep modal open
-        setShowAccountModal(true);
+        router.push("/dashboard");
+        return;
       }
+      
+      // Not authenticated - keep modal open
+      setShowAccountModal(true);
     }
-  }, []);
+  }, [router]);
 
   // Check if coming from project creation
   useEffect(() => {
@@ -126,12 +132,45 @@ export default function GetStartedPage() {
 
   // Save progress to localStorage whenever formData or step changes
   useEffect(() => {
-    const progress = {
-      step: currentStep,
-      data: formData,
-      projectTitle: projectTitle,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    try {
+      // Create a serializable copy of formData (exclude File objects which can't be JSON stringified)
+      const serializableData = {
+        ...formData,
+        // File objects cannot be serialized, so we only save metadata
+        certificateOfRegistration: formData.certificateOfRegistration ? {
+          name: formData.certificateOfRegistration.name,
+          size: formData.certificateOfRegistration.size,
+          type: formData.certificateOfRegistration.type,
+        } : undefined,
+        ngoLogo: formData.ngoLogo ? {
+          name: formData.ngoLogo.name,
+          size: formData.ngoLogo.size,
+          type: formData.ngoLogo.type,
+        } : undefined,
+        adminIdentityVerification: formData.adminIdentityVerification ? {
+          name: formData.adminIdentityVerification.name,
+          size: formData.adminIdentityVerification.size,
+          type: formData.adminIdentityVerification.type,
+        } : undefined,
+      };
+      
+      const progress = {
+        step: currentStep,
+        data: serializableData,
+        projectTitle: projectTitle,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    } catch (error) {
+      console.error("Failed to save progress to localStorage:", error);
+      // Still try to save without File objects
+      const { certificateOfRegistration, ngoLogo, adminIdentityVerification, ...dataWithoutFiles } = formData;
+      const progress = {
+        step: currentStep,
+        data: dataWithoutFiles,
+        projectTitle: projectTitle,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    }
   }, [currentStep, formData, projectTitle]);
 
   const updateFormData = (updates: Partial<NGOAccountData>) => {
@@ -210,21 +249,137 @@ export default function GetStartedPage() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent double submission
+
+    setIsSubmitting(true);
     try {
+      // Create FormData to handle file uploads
+      const submitData = new FormData();
+
+      // Map to Project model fields ONLY
+      // Project model: title, description, images, fundingGoal, creatorId, locationId
+      
+      // title: String (required)
+      submitData.append("title", projectTitle || formData.organizationName || "");
+      
+      // description: String (required) - use missionStatement
+      submitData.append("description", formData.missionStatement || "");
+      
+      // creatorId: String (required) - use wallet address
+      submitData.append("creatorId", formData.walletAddress || "");
+      
+      // fundingGoal: Float (required, must be positive)
+      // Default to 1 if not provided or if 0 (backend requires positive number)
+      const fundingGoal = formData.fundingGoal && formData.fundingGoal > 0 ? formData.fundingGoal : 1;
+      submitData.append("fundingGoal", String(fundingGoal));
+      
+      // images: String[] - convert files to base64 strings
+      const imagePromises: Promise<string>[] = [];
+      
+      // Helper function to check if value is a File or Blob
+      const isFileOrBlob = (value: unknown): value is File | Blob => {
+        return value instanceof File || value instanceof Blob;
+      };
+      
+      // Helper function to convert file to base64
+      const fileToBase64 = (file: File | Blob): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+      };
+      
+      if (formData.ngoLogo && isFileOrBlob(formData.ngoLogo)) {
+        imagePromises.push(fileToBase64(formData.ngoLogo));
+      }
+      if (formData.certificateOfRegistration && isFileOrBlob(formData.certificateOfRegistration)) {
+        imagePromises.push(fileToBase64(formData.certificateOfRegistration));
+      }
+      if (formData.adminIdentityVerification && isFileOrBlob(formData.adminIdentityVerification)) {
+        imagePromises.push(fileToBase64(formData.adminIdentityVerification));
+      }
+      
+      // Wait for all images to be converted to base64
+      const imageStrings = await Promise.all(imagePromises);
+      
+      // Backend requires at least 1 image
+      if (imageStrings.length === 0) {
+        throw new Error("At least one image is required. Please upload at least one document (NGO Logo, Certificate, or ID).");
+      }
+      
+      // Append each image as a string
+      imageStrings.forEach((imageString) => {
+        submitData.append("images", imageString);
+      });
+      
+      // Debug: Log what we're sending (excluding base64 images for readability)
+      const formDataEntries: Record<string, string> = {};
+      submitData.forEach((value, key) => {
+        if (key === "images") {
+          formDataEntries[key] = `[base64 string - ${(value as string).substring(0, 50)}...]`;
+        } else {
+          formDataEntries[key] = value as string;
+        }
+      });
+      console.log("Submitting data:", formDataEntries);
+      
+      // locationId: String? (optional) - use countryOfOperation (backend may need to create/link Location)
+      if (formData.countryOfOperation) {
+        submitData.append("locationId", formData.countryOfOperation);
+      }
+      
+      // NOTE: Backend only accepts Project model fields. NGO account fields are rejected.
+
+      // Get auth token for authentication
+      const token = typeof window !== "undefined" ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+      
       // Submit organization data via API
-      const response = await fetch("/api/accounts/update", {
+      // Note: Don't set Content-Type header when sending FormData - browser sets it automatically with boundary
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch("/api/projects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: formData.walletAddress,
-          organizationData: formData,
-        }),
+        headers,
+        body: submitData, // FormData - browser will automatically set Content-Type with boundary
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to submit organization data");
+      // Parse response
+      let result;
+      try {
+        result = await response.json();
+      } catch (error) {
+        const text = await response.text();
+        console.error("Failed to parse response:", text);
+        throw new Error(`Server returned invalid response: ${text}`);
       }
 
+      if (!response.ok) {
+        // Log detailed error for debugging
+        console.error("Submission failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: result,
+        });
+        
+        // Extract error message from response
+        const errorMessage = 
+          result?.error || 
+          result?.message || 
+          result?.errors?.map((e: any) => e.message || e).join(", ") ||
+          `Failed to submit organization data (${response.status}: ${response.statusText})`;
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log("Account submitted successfully:", result);
+      alert("Account submitted successfully");
+
+      // Clear saved progress
       localStorage.removeItem(STORAGE_KEY);
       
       // Redirect to account under review page
@@ -234,7 +389,10 @@ export default function GetStartedPage() {
       router.push(reviewUrl);
     } catch (error) {
       console.error("Failed to submit:", error);
-      alert("Failed to submit organization data. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit organization data. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -381,10 +539,15 @@ export default function GetStartedPage() {
               size="lg"
               rounded="full"
               style={{ fontSize: "0.9em", padding: "0.5em 1.2em" }}
-              className="bg-[#0350B5] text-white hover:bg-[#034093] min-w-[100px]"
+              className="bg-[#0350B5] text-white hover:bg-[#034093] min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleNext}
+              disabled={isSubmitting}
             >
-              {currentStep === TOTAL_STEPS ? "Submit For Review" : "Continue"}
+              {isSubmitting
+                ? "Submitting..."
+                : currentStep === TOTAL_STEPS
+                ? "Submit For Review"
+                : "Continue"}
             </Button>
           </div>
         </div>

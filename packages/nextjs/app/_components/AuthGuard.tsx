@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
+const AUTH_TOKEN_KEY = "access_token";
 
 interface AuthGuardProps {
   children: React.ReactNode;

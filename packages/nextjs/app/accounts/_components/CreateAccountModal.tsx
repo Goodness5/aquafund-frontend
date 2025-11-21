@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { XMarkIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
@@ -10,15 +11,26 @@ interface CreateAccountModalProps {
   onAccountCreated: (email?: string) => void;
 }
 
-const AUTH_TOKEN_KEY = "aquafund-auth-token";
+const AUTH_TOKEN_KEY = "access_token";
 
 export default function CreateAccountModal({
   onClose,
   onAccountCreated,
 }: CreateAccountModalProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (token) {
+        router.push("/dashboard");
+      }
+    }
+  }, [router]);
 
   const createAccount = async (email?: string) => {
     if (!email) {
