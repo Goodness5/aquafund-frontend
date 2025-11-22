@@ -11,10 +11,15 @@ import {
   XMarkIcon,
   PauseIcon,
   PlayIcon,
+  BuildingOfficeIcon,
+  InformationCircleIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import externalContracts from "../../contracts/externalContracts";
 import AquaFundRegistryAbi from "../../contracts/abis/AquaFundRegistry.json";
 import AquaFundFactoryAbi from "../../contracts/abis/AquaFundFactory.json";
+import AquaFundBadgeAbi from "../../contracts/abis/AquaFundBadge.json";
+import AquaFundProjectAbi from "../../contracts/abis/AquaFundProject.json";
 
 const formatAddress = (address: `0x${string}`) => {
   if (!isAddress(address)) return address;
@@ -23,7 +28,7 @@ const formatAddress = (address: `0x${string}`) => {
 
 export default function SettingsPage() {
   const { address, isConnected } = useAccount();
-  const [activeTab, setActiveTab] = useState<"roles" | "factory" | "tokens">("roles");
+  const [activeTab, setActiveTab] = useState<"overview" | "factory" | "registry" | "badge" | "projects">("overview");
   
   // Role management
   const [roleAddress, setRoleAddress] = useState("");
@@ -34,10 +39,17 @@ export default function SettingsPage() {
   const [newServiceFee, setNewServiceFee] = useState("");
   const [newBadgeContract, setNewBadgeContract] = useState("");
   const [newRegistry, setNewRegistry] = useState("");
-  const [allowAllTokens, setAllowAllTokens] = useState(false);
   
   // Token management
   const [tokenAddress, setTokenAddress] = useState("");
+  
+  // Badge settings
+  const [newBaseURI, setNewBaseURI] = useState("");
+  const [badgeMinterAddress, setBadgeMinterAddress] = useState("");
+  
+  // Project settings
+  const [selectedProjectAddress, setSelectedProjectAddress] = useState("");
+  const [newProjectStatus, setNewProjectStatus] = useState<"0" | "1" | "2">("0");
 
   const { writeContract, data: hash, isPending: isWriting } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -78,6 +90,12 @@ export default function SettingsPage() {
   });
 
   // Factory settings
+  const { data: implementationAddress } = useReadContract({
+    address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+    abi: AquaFundFactoryAbi,
+    functionName: "IMPLEMENTATION",
+  });
+
   const { data: currentTreasury } = useReadContract({
     address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
     abi: AquaFundFactoryAbi,
@@ -100,6 +118,59 @@ export default function SettingsPage() {
     address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
     abi: AquaFundFactoryAbi,
     functionName: "allowAllTokens",
+  });
+
+  // Get current badge contract and registry addresses
+  const { data: currentBadgeContract } = useReadContract({
+    address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+    abi: AquaFundFactoryAbi,
+    functionName: "badgeContract",
+  });
+
+  const { data: currentRegistry } = useReadContract({
+    address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+    abi: AquaFundFactoryAbi,
+    functionName: "registry",
+  });
+
+  // Get allowed tokens list
+  const { data: allowedTokens, refetch: refetchAllowedTokens } = useReadContract({
+    address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+    abi: AquaFundFactoryAbi,
+    functionName: "getAllowedTokens",
+    query: {
+      enabled: !allowAllTokensValue,
+    },
+  });
+
+  // Badge contract settings
+  const { data: badgeBaseURI } = useReadContract({
+    address: externalContracts[97]?.AquaFundBadge?.address as `0x${string}`,
+    abi: AquaFundBadgeAbi,
+    functionName: "baseURI",
+  });
+
+  const { data: badgeMinterRole } = useReadContract({
+    address: externalContracts[97]?.AquaFundBadge?.address as `0x${string}`,
+    abi: AquaFundBadgeAbi,
+    functionName: "MINTER_ROLE",
+  });
+
+  // Get project info if address is selected
+  const { data: projectInfo, refetch: refetchProjectInfo } = useReadContract({
+    address: selectedProjectAddress as `0x${string}`,
+    abi: AquaFundProjectAbi,
+    functionName: "getProjectInfo",
+    query: {
+      enabled: !!selectedProjectAddress && isAddress(selectedProjectAddress),
+    },
+  });
+
+  // Get all project IDs for selection
+  const { data: allProjectIds } = useReadContract({
+    address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+    abi: AquaFundRegistryAbi,
+    functionName: "getAllProjectIds",
   });
 
   const handleGrantRole = () => {
@@ -143,45 +214,6 @@ export default function SettingsPage() {
       abi,
       functionName,
       args: [role, roleAddress as `0x${string}`],
-    });
-  };
-
-  const handleRevokeRole = (addressToRevoke: string, roleType: "admin" | "viewer" | "projectCreator") => {
-    let role: `0x${string}`;
-    let contractAddress: `0x${string}`;
-    let abi: any;
-    let functionName: string;
-
-    if (roleType === "projectCreator") {
-      contractAddress = externalContracts[97]?.AquaFundFactory?.address as `0x${string}`;
-      abi = AquaFundFactoryAbi;
-      functionName = "revokeProjectCreatorRole";
-      writeContract({
-        address: contractAddress,
-        abi,
-        functionName,
-        args: [addressToRevoke as `0x${string}`],
-      });
-      return;
-    } else {
-      contractAddress = externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`;
-      abi = AquaFundRegistryAbi;
-      functionName = "revokeRole";
-      role = roleType === "admin"
-        ? (adminRole as `0x${string}`)
-        : (viewerRole as `0x${string}`);
-    }
-
-    if (!role) {
-      toast.error("Role not loaded");
-      return;
-    }
-
-    writeContract({
-      address: contractAddress,
-      abi,
-      functionName,
-      args: [role, addressToRevoke as `0x${string}`],
     });
   };
 
@@ -274,6 +306,39 @@ export default function SettingsPage() {
     });
   };
 
+  const handleSetBadgeBaseURI = () => {
+    if (!newBaseURI) {
+      toast.error("Please enter a valid base URI");
+      return;
+    }
+
+    writeContract({
+      address: externalContracts[97]?.AquaFundBadge?.address as `0x${string}`,
+      abi: AquaFundBadgeAbi,
+      functionName: "setBaseURI",
+      args: [newBaseURI],
+    });
+  };
+
+  const handleGrantBadgeMinterRole = () => {
+    if (!badgeMinterAddress || !isAddress(badgeMinterAddress)) {
+      toast.error("Please enter a valid address");
+      return;
+    }
+
+    if (!badgeMinterRole) {
+      toast.error("Minter role not loaded");
+      return;
+    }
+
+    writeContract({
+      address: externalContracts[97]?.AquaFundBadge?.address as `0x${string}`,
+      abi: AquaFundBadgeAbi,
+      functionName: "grantRole",
+      args: [badgeMinterRole as `0x${string}`, badgeMinterAddress as `0x${string}`],
+    });
+  };
+
   const handlePause = () => {
     writeContract({
       address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
@@ -290,6 +355,50 @@ export default function SettingsPage() {
     });
   };
 
+  const handleUpdateProjectStatus = () => {
+    if (!selectedProjectAddress || !isAddress(selectedProjectAddress)) {
+      toast.error("Please select a valid project address");
+      return;
+    }
+
+    writeContract({
+      address: selectedProjectAddress as `0x${string}`,
+      abi: AquaFundProjectAbi,
+      functionName: "updateStatus",
+      args: [BigInt(newProjectStatus)],
+    });
+  };
+
+  const handleReleaseFunds = () => {
+    if (!selectedProjectAddress || !isAddress(selectedProjectAddress)) {
+      toast.error("Please select a valid project address");
+      return;
+    }
+
+    writeContract({
+      address: selectedProjectAddress as `0x${string}`,
+      abi: AquaFundProjectAbi,
+      functionName: "releaseFunds",
+    });
+  };
+
+  const handleRefundAllDonors = () => {
+    if (!selectedProjectAddress || !isAddress(selectedProjectAddress)) {
+      toast.error("Please select a valid project address");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to refund all donors? This action cannot be undone.")) {
+      return;
+    }
+
+    writeContract({
+      address: selectedProjectAddress as `0x${string}`,
+      abi: AquaFundProjectAbi,
+      functionName: "refundAllDonors",
+    });
+  };
+
   useEffect(() => {
     if (isConfirmed) {
       toast.success("Transaction confirmed");
@@ -299,8 +408,14 @@ export default function SettingsPage() {
       setNewBadgeContract("");
       setNewRegistry("");
       setTokenAddress("");
+      setNewBaseURI("");
+      setBadgeMinterAddress("");
+      refetchAllowedTokens();
+      if (selectedProjectAddress) {
+        refetchProjectInfo();
+      }
     }
-  }, [isConfirmed]);
+  }, [isConfirmed, refetchAllowedTokens, selectedProjectAddress, refetchProjectInfo]);
 
   if (!isConnected || !hasAdminRole) {
     return (
@@ -314,26 +429,44 @@ export default function SettingsPage() {
     );
   }
 
+  const projectInfoData = projectInfo as any;
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="mt-1 text-sm text-gray-500">Manage platform configuration and permissions</p>
+        <h1 className="text-2xl font-bold text-gray-900">Platform Settings</h1>
+        <p className="mt-1 text-sm text-gray-500">Manage contracts, roles, and individual project instances</p>
+      </div>
+
+      {/* Contract Overview */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <InformationCircleIcon className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-blue-900 mb-2">Contract Architecture</h3>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p><strong>Factory:</strong> Creates new project instances (clones) from the implementation contract</p>
+              <p><strong>Implementation:</strong> Template contract that each project is cloned from</p>
+              <p><strong>Registry:</strong> Central registry for project discovery and analytics</p>
+              <p><strong>Badge:</strong> ERC721 NFT contract for donor badges</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto">
           <button
-            onClick={() => setActiveTab("roles")}
+            onClick={() => setActiveTab("overview")}
             className={`${
-              activeTab === "roles"
+              activeTab === "overview"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
-            <KeyIcon className="w-5 h-5" />
-            Role Management
+            <InformationCircleIcon className="w-5 h-5" />
+            Overview
           </button>
           <button
             onClick={() => setActiveTab("factory")}
@@ -344,25 +477,373 @@ export default function SettingsPage() {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <Cog6ToothIcon className="w-5 h-5" />
-            Factory Settings
+            Factory (Global)
           </button>
           <button
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => setActiveTab("registry")}
             className={`${
-              activeTab === "tokens"
+              activeTab === "registry"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
-            <PlusIcon className="w-5 h-5" />
-            Token Management
+            <KeyIcon className="w-5 h-5" />
+            Registry (Roles)
+          </button>
+          <button
+            onClick={() => setActiveTab("badge")}
+            className={`${
+              activeTab === "badge"
+                ? "border-[#0350B5] text-[#0350B5]"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+          >
+            <Cog6ToothIcon className="w-5 h-5" />
+            Badge (NFT)
+          </button>
+          <button
+            onClick={() => setActiveTab("projects")}
+            className={`${
+              activeTab === "projects"
+                ? "border-[#0350B5] text-[#0350B5]"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+          >
+            <BuildingOfficeIcon className="w-5 h-5" />
+            Projects (Instances)
           </button>
         </nav>
       </div>
 
-      {/* Role Management Tab */}
-      {activeTab === "roles" && (
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
         <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Factory Info */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Cog6ToothIcon className="w-5 h-5 text-[#0350B5]" />
+                Factory Contract
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Address:</span>
+                  <span className="font-mono text-gray-900">
+                    {formatAddress(externalContracts[97]?.AquaFundFactory?.address as `0x${string}`)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Implementation:</span>
+                  <span className="font-mono text-gray-900">
+                    {implementationAddress ? formatAddress(implementationAddress as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Treasury:</span>
+                  <span className="font-mono text-gray-900">
+                    {currentTreasury ? formatAddress(currentTreasury as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Service Fee:</span>
+                  <span className="text-gray-900">
+                    {currentServiceFee ? `${Number(currentServiceFee)} bps` : "Loading..."}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Status:</span>
+                  <span className={isPaused ? "text-red-600" : "text-green-600"}>
+                    {isPaused ? "Paused" : "Active"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Registry Info */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <KeyIcon className="w-5 h-5 text-[#0350B5]" />
+                Registry Contract
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Address:</span>
+                  <span className="font-mono text-gray-900">
+                    {formatAddress(externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Badge Contract:</span>
+                  <span className="font-mono text-gray-900">
+                    {currentBadgeContract ? formatAddress(currentBadgeContract as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Badge Info */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Cog6ToothIcon className="w-5 h-5 text-[#0350B5]" />
+                Badge Contract
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Address:</span>
+                  <span className="font-mono text-gray-900">
+                    {formatAddress(externalContracts[97]?.AquaFundBadge?.address as `0x${string}`)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Base URI:</span>
+                  <span className="text-gray-900 font-mono text-xs break-all">
+                    {badgeBaseURI ? (badgeBaseURI as string).slice(0, 30) + "..." : "Loading..."}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Implementation Info */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <BuildingOfficeIcon className="w-5 h-5 text-[#0350B5]" />
+                Implementation Contract
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Address:</span>
+                  <span className="font-mono text-gray-900">
+                    {formatAddress(externalContracts[97]?.AquaFundProject?.address as `0x${string}`)}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  This is the template contract. Each project is a clone (proxy) of this implementation.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Factory Settings Tab */}
+      {activeTab === "factory" && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Factory Settings:</strong> These settings affect all projects globally. Changes here apply to all existing and future projects.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Treasury & Fees</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Treasury Address</label>
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Current: </span>
+                  <span className="text-xs font-mono text-gray-700">
+                    {currentTreasury ? formatAddress(currentTreasury as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={newTreasury}
+                  onChange={(e) => setNewTreasury(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
+                />
+                <button
+                  onClick={handleUpdateTreasury}
+                  disabled={!newTreasury || isWriting || isConfirming}
+                  className="mt-2 w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isWriting || isConfirming ? "Updating..." : "Update Treasury"}
+                </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Service Fee (basis points)</label>
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Current: </span>
+                  <span className="text-xs text-gray-700">
+                    {currentServiceFee ? `${Number(currentServiceFee)} bps (${Number(currentServiceFee) / 100}%)` : "Loading..."}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  value={newServiceFee}
+                  onChange={(e) => setNewServiceFee(e.target.value)}
+                  placeholder="1000"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5]"
+                />
+                <button
+                  onClick={handleUpdateServiceFee}
+                  disabled={!newServiceFee || isWriting || isConfirming}
+                  className="mt-2 w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isWriting || isConfirming ? "Updating..." : "Update Service Fee"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Contract References</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Badge Contract Address</label>
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Current: </span>
+                  <span className="text-xs font-mono text-gray-700">
+                    {currentBadgeContract ? formatAddress(currentBadgeContract as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={newBadgeContract}
+                  onChange={(e) => setNewBadgeContract(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
+                />
+                <button
+                  onClick={handleSetBadgeContract}
+                  disabled={!newBadgeContract || isWriting || isConfirming}
+                  className="mt-2 w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isWriting || isConfirming ? "Updating..." : "Update Badge Contract"}
+                </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Registry Address</label>
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Current: </span>
+                  <span className="text-xs font-mono text-gray-700">
+                    {currentRegistry ? formatAddress(currentRegistry as `0x${string}`) : "Loading..."}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={newRegistry}
+                  onChange={(e) => setNewRegistry(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
+                />
+                <button
+                  onClick={handleSetRegistry}
+                  disabled={!newRegistry || isWriting || isConfirming}
+                  className="mt-2 w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isWriting || isConfirming ? "Updating..." : "Update Registry"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Token Management</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Allow All Tokens</p>
+                  <p className="text-sm text-gray-500">When enabled, any ERC20 token can be used for donations</p>
+                </div>
+                <button
+                  onClick={handleToggleAllowAllTokens}
+                  disabled={isWriting || isConfirming}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    allowAllTokensValue
+                      ? "bg-green-500 text-white hover:bg-green-600"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  } disabled:opacity-50`}
+                >
+                  {allowAllTokensValue ? "Enabled" : "Disabled"}
+                </button>
+              </div>
+              {!allowAllTokensValue && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Add Allowed Token</label>
+                    <input
+                      type="text"
+                      value={tokenAddress}
+                      onChange={(e) => setTokenAddress(e.target.value)}
+                      placeholder="0x..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
+                    />
+                    <button
+                      onClick={handleAddToken}
+                      disabled={!tokenAddress || isWriting || isConfirming}
+                      className="mt-2 w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isWriting || isConfirming ? "Adding..." : "Add Token"}
+                    </button>
+                  </div>
+                  {allowedTokens && Array.isArray(allowedTokens) && allowedTokens.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Allowed Tokens</label>
+                      <div className="space-y-2">
+                        {allowedTokens.map((token: string, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <span className="text-sm font-mono text-gray-900">{formatAddress(token as `0x${string}`)}</span>
+                            <button
+                              onClick={() => handleRemoveToken(token)}
+                              disabled={isWriting || isConfirming}
+                              className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                            >
+                              <XMarkIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Emergency Controls</h2>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Pause/Unpause Factory</p>
+                <p className="text-sm text-gray-500">Temporarily halt all factory operations (project creation, donations)</p>
+              </div>
+              {isPaused ? (
+                <button
+                  onClick={handleUnpause}
+                  disabled={isWriting || isConfirming}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+                >
+                  <PlayIcon className="w-5 h-5" />
+                  Unpause
+                </button>
+              ) : (
+                <button
+                  onClick={handlePause}
+                  disabled={isWriting || isConfirming}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+                >
+                  <PauseIcon className="w-5 h-5" />
+                  Pause
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Registry Settings Tab */}
+      {activeTab === "registry" && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Registry Settings:</strong> Manage platform-wide roles and permissions. These affect who can perform actions across the platform.
+            </p>
+          </div>
+
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Grant Role</h2>
             <div className="space-y-4">
@@ -373,9 +854,9 @@ export default function SettingsPage() {
                   onChange={(e) => setSelectedRole(e.target.value as any)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5]"
                 >
-                  <option value="viewer">Viewer Role</option>
-                  <option value="admin">Admin Role</option>
-                  <option value="projectCreator">Project Creator Role</option>
+                  <option value="viewer">Viewer Role (Registry) - Can view projects</option>
+                  <option value="admin">Admin Role (Registry) - Full platform access</option>
+                  <option value="projectCreator">Project Creator Role (Factory) - Can create projects</option>
                 </select>
               </div>
               <div>
@@ -397,221 +878,193 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Current Settings</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Treasury Address:</span>
-                <span className="font-mono text-gray-900">
-                  {currentTreasury ? formatAddress(currentTreasury as `0x${string}`) : "Loading..."}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Service Fee:</span>
-                <span className="text-gray-900">
-                  {currentServiceFee ? `${Number(currentServiceFee)} basis points` : "Loading..."}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Contract Paused:</span>
-                <span className="text-gray-900">{isPaused ? "Yes" : "No"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Allow All Tokens:</span>
-                <span className="text-gray-900">{allowAllTokensValue ? "Yes" : "No"}</span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Factory Settings Tab */}
-      {activeTab === "factory" && (
+      {/* Badge Settings Tab */}
+      {activeTab === "badge" && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Treasury</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Treasury Address</label>
-                <input
-                  type="text"
-                  value={newTreasury}
-                  onChange={(e) => setNewTreasury(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
-                />
-              </div>
-              <button
-                onClick={handleUpdateTreasury}
-                disabled={!newTreasury || isWriting || isConfirming}
-                className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isWriting || isConfirming ? "Updating..." : "Update Treasury"}
-              </button>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Badge Settings:</strong> Manage the ERC721 NFT contract for donor badges. These settings affect badge metadata and minting permissions.
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Service Fee</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Base URI</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  New Service Fee (basis points, e.g., 1000 = 10%)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Base URI</label>
+                <p className="text-sm text-gray-500 font-mono break-all p-3 bg-gray-50 rounded-lg">
+                  {badgeBaseURI ? (badgeBaseURI as string) : "Loading..."}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">New Base URI</label>
                 <input
-                  type="number"
-                  value={newServiceFee}
-                  onChange={(e) => setNewServiceFee(e.target.value)}
-                  placeholder="1000"
+                  type="text"
+                  value={newBaseURI}
+                  onChange={(e) => setNewBaseURI(e.target.value)}
+                  placeholder="https://example.com/metadata/"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5]"
                 />
               </div>
               <button
-                onClick={handleUpdateServiceFee}
-                disabled={!newServiceFee || isWriting || isConfirming}
+                onClick={handleSetBadgeBaseURI}
+                disabled={!newBaseURI || isWriting || isConfirming}
                 className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isWriting || isConfirming ? "Updating..." : "Update Service Fee"}
+                {isWriting || isConfirming ? "Updating..." : "Update Base URI"}
               </button>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Badge Contract</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Minter Role Management</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Badge Contract Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Grant Minter Role</label>
+                <p className="text-xs text-gray-500 mb-2">Addresses with minter role can mint badges for donors</p>
                 <input
                   type="text"
-                  value={newBadgeContract}
-                  onChange={(e) => setNewBadgeContract(e.target.value)}
+                  value={badgeMinterAddress}
+                  onChange={(e) => setBadgeMinterAddress(e.target.value)}
                   placeholder="0x..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
                 />
               </div>
               <button
-                onClick={handleSetBadgeContract}
-                disabled={!newBadgeContract || isWriting || isConfirming}
+                onClick={handleGrantBadgeMinterRole}
+                disabled={!badgeMinterAddress || isWriting || isConfirming}
                 className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isWriting || isConfirming ? "Updating..." : "Update Badge Contract"}
+                {isWriting || isConfirming ? "Granting..." : "Grant Minter Role"}
               </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Registry</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Registry Address</label>
-                <input
-                  type="text"
-                  value={newRegistry}
-                  onChange={(e) => setNewRegistry(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
-                />
-              </div>
-              <button
-                onClick={handleSetRegistry}
-                disabled={!newRegistry || isWriting || isConfirming}
-                className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isWriting || isConfirming ? "Updating..." : "Update Registry"}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Contract Controls</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Allow All Tokens</p>
-                  <p className="text-sm text-gray-500">Enable/disable allowing all tokens</p>
-                </div>
-                <button
-                  onClick={handleToggleAllowAllTokens}
-                  disabled={isWriting || isConfirming}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    allowAllTokensValue
-                      ? "bg-green-500 text-white hover:bg-green-600"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  } disabled:opacity-50`}
-                >
-                  {allowAllTokensValue ? "Enabled" : "Disabled"}
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Pause/Unpause Contract</p>
-                  <p className="text-sm text-gray-500">Temporarily halt contract operations</p>
-                </div>
-                {isPaused ? (
-                  <button
-                    onClick={handleUnpause}
-                    disabled={isWriting || isConfirming}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                  >
-                    <PlayIcon className="w-5 h-5" />
-                    Unpause
-                  </button>
-                ) : (
-                  <button
-                    onClick={handlePause}
-                    disabled={isWriting || isConfirming}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
-                  >
-                    <PauseIcon className="w-5 h-5" />
-                    Pause
-                  </button>
-                )}
-              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Token Management Tab */}
-      {activeTab === "tokens" && (
+      {/* Projects Settings Tab */}
+      {activeTab === "projects" && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Allowed Token</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Token Address</label>
-                <input
-                  type="text"
-                  value={tokenAddress}
-                  onChange={(e) => setTokenAddress(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
-                />
-              </div>
-              <button
-                onClick={handleAddToken}
-                disabled={!tokenAddress || isWriting || isConfirming}
-                className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isWriting || isConfirming ? "Adding..." : "Add Token"}
-              </button>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Project Settings:</strong> Manage individual project instances. Each project is a clone of the implementation contract with its own state.
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Allowed Tokens</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {allowAllTokensValue
-                ? "All tokens are currently allowed"
-                : "Only specific tokens are allowed"}
-            </p>
-            {/* TODO: Fetch and display list of allowed tokens */}
-            <p className="text-sm text-gray-400 italic">Token list feature coming soon</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Project</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Project Contract Address</label>
+                <input
+                  type="text"
+                  value={selectedProjectAddress}
+                  onChange={(e) => setSelectedProjectAddress(e.target.value)}
+                  placeholder="0x... (Enter project contract address)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the contract address of a specific project instance to manage it
+                </p>
+              </div>
+            </div>
           </div>
+
+          {selectedProjectAddress && isAddress(selectedProjectAddress) && projectInfoData && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Information</h2>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Project ID:</span>
+                    <span className="text-gray-900 font-mono">{projectInfoData.projectId?.toString() || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Admin:</span>
+                    <span className="text-gray-900 font-mono">{formatAddress(projectInfoData.admin as `0x${string}`)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Funding Goal:</span>
+                    <span className="text-gray-900">
+                      {projectInfoData.fundingGoal ? `${Number(projectInfoData.fundingGoal) / 1e18} ETH` : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Funds Raised:</span>
+                    <span className="text-gray-900">
+                      {projectInfoData.fundsRaised ? `${Number(projectInfoData.fundsRaised) / 1e18} ETH` : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Status:</span>
+                    <span className="text-gray-900">
+                      {projectInfoData.status === 0 ? "Active" : projectInfoData.status === 1 ? "Completed" : "Cancelled"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Update Project Status</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">New Status</label>
+                    <select
+                      value={newProjectStatus}
+                      onChange={(e) => setNewProjectStatus(e.target.value as "0" | "1" | "2")}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5]"
+                    >
+                      <option value="0">Active</option>
+                      <option value="1">Completed</option>
+                      <option value="2">Cancelled</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleUpdateProjectStatus}
+                    disabled={isWriting || isConfirming}
+                    className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isWriting || isConfirming ? "Updating..." : "Update Status"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Fund Management</h2>
+                <div className="space-y-4">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800 mb-3">
+                      <strong>Release Funds:</strong> Transfer all raised funds to the project admin
+                    </p>
+                    <button
+                      onClick={handleReleaseFunds}
+                      disabled={isWriting || isConfirming}
+                      className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isWriting || isConfirming ? "Processing..." : "Release Funds to Admin"}
+                    </button>
+                  </div>
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 mb-3">
+                      <strong>Refund All Donors:</strong> Return all donations to donors. This action cannot be undone.
+                    </p>
+                    <button
+                      onClick={handleRefundAllDonors}
+                      disabled={isWriting || isConfirming}
+                      className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isWriting || isConfirming ? "Processing..." : "Refund All Donors"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
-
