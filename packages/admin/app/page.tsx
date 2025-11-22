@@ -6,6 +6,7 @@ import {
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
+
 export default function Home() {
   const quickLinks = [
     { name: "NGO Approvals", href: "/ngos", icon: DocumentCheckIcon, description: "Review and approve NGO applications" },
