@@ -131,8 +131,17 @@ export const useScaffoldEventHistory = <
     }
     if (deployedContractData && "deployedOnBlock" in deployedContractData) {
       const deployedOnBlock = (deployedContractData as Record<string, unknown>).deployedOnBlock;
+<<<<<<< HEAD
       if (typeof deployedOnBlock === "bigint") return deployedOnBlock;
       if (typeof deployedOnBlock === "number") return BigInt(deployedOnBlock);
+=======
+      if (typeof deployedOnBlock === "bigint") {
+        return deployedOnBlock;
+      }
+      if (typeof deployedOnBlock === "number") {
+        return BigInt(deployedOnBlock);
+      }
+>>>>>>> master
       if (typeof deployedOnBlock === "string") {
         const parsed = Number(deployedOnBlock);
         return BigInt(Number.isFinite(parsed) ? parsed : 0);

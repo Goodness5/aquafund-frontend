@@ -4,10 +4,16 @@ import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+<<<<<<< HEAD
 import { ArrowUpRightIcon, Bars3Icon } from "@heroicons/react/24/outline";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
 const AUTH_TOKEN_KEY = "access_token";
+=======
+import { Bars3Icon } from "@heroicons/react/24/outline";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
+import { useOutsideClick } from "~~/hooks/scaffold-eth";
+>>>>>>> master
 
 type HeaderMenuLink = {
   label: string;
