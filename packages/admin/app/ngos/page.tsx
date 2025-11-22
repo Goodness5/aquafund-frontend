@@ -21,16 +21,26 @@ import AquaFundRegistryAbi from "../../contracts/abis/AquaFundRegistry.json";
 interface NGO {
   id: string;
   organizationName: string;
-  email: string;
-  walletAddress: string;
+  yearEstablished: number;
   countryOfOperation: string;
-  status: "pending" | "approved" | "rejected";
+  ngoIdentificationNumber: string;
+  emailAddress: string;
+  missionStatement: string;
+  websiteOrSocialLinks: string;
+  contactPersonName: string;
+  contactPersonPosition: string;
+  contactPersonPhoneNumber: string;
+  contactPersonResidentialAddress: string;
+  contactPersonEmailAddress: string;
+  orgCountryOfOperation: string;
+  orgEmailAddress: string;
+  orgDescription: string;
+  orgImages: string[];
+  connectedWallet: string;
+  statusVerification: "PENDING" | "APPROVED" | "REJECTED";
+  userId: string;
   createdAt: string;
-  documents?: {
-    certificateOfRegistration?: string;
-    ngoLogo?: string;
-    adminIdentityVerification?: string;
-  };
+  updatedAt: string;
 }
 
 export default function NGOPage() {
@@ -88,13 +98,30 @@ export default function NGOPage() {
   const fetchNGOs = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/ngos?status=pending");
+      const res = await fetch("/api/v1/ngos");
       if (res.ok) {
         const data = await res.json();
-        setNgos(data);
+        // Ensure data is always an array
+        if (Array.isArray(data)) {
+          setNgos(data);
+        } else if (data && Array.isArray(data.data)) {
+          // Handle case where response is wrapped in { data: [...] }
+          setNgos(data.data);
+        } else {
+          console.error("Unexpected response format:", data);
+          setNgos([]);
+          toast.error("Unexpected response format from API");
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to fetch NGOs:", errorData);
+        setNgos([]);
+        toast.error(errorData.error || "Failed to fetch NGOs");
       }
     } catch (error) {
       console.error("Failed to fetch NGOs:", error);
+      setNgos([]);
+      toast.error("Failed to fetch NGOs");
     } finally {
       setLoading(false);
     }
@@ -126,7 +153,7 @@ export default function NGOPage() {
         functionName: "grantRole",
         args: [
           viewerRole as `0x${string}`,
-          ngo.walletAddress as `0x${string}`,
+          ngo.connectedWallet as `0x${string}`,
         ],
       });
     } catch (error) {
@@ -142,7 +169,7 @@ export default function NGOPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: selectedNGO?.walletAddress,
+          walletAddress: selectedNGO?.connectedWallet,
           txHash,
         }),
       });
@@ -194,7 +221,7 @@ export default function NGOPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">NGO Approvals</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Review and approve pending NGO applications
+          Review and manage all NGO applications
         </p>
       </div>
 
@@ -239,10 +266,10 @@ export default function NGOPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {ngos.length === 0 ? (
+            {!Array.isArray(ngos) || ngos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                  No pending NGOs
+                  No NGOs found
                 </td>
               </tr>
             ) : (
@@ -254,21 +281,35 @@ export default function NGOPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{ngo.email}</div>
+                    <div className="text-sm text-gray-500">{ngo.emailAddress || ngo.orgEmailAddress}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500 font-mono">
-                      {formatAddress(ngo.walletAddress as `0x${string}`)}
+                      {formatAddress(ngo.connectedWallet as `0x${string}`)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{ngo.countryOfOperation}</div>
+                    <div className="text-sm text-gray-500">{ngo.countryOfOperation || ngo.orgCountryOfOperation}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                      <ClockIcon className="h-3 w-3" />
-                      Pending
-                    </span>
+                    {ngo.statusVerification === "PENDING" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                        <ClockIcon className="h-3 w-3" />
+                        Pending
+                      </span>
+                    )}
+                    {ngo.statusVerification === "APPROVED" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                        <CheckCircleIcon className="h-3 w-3" />
+                        Approved
+                      </span>
+                    )}
+                    {ngo.statusVerification === "REJECTED" && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                        <XCircleIcon className="h-3 w-3" />
+                        Rejected
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
@@ -281,23 +322,27 @@ export default function NGOPage() {
                       >
                         <EyeIcon className="h-5 w-5" />
                       </button>
-                      <button
-                        onClick={() => handleApprove(ngo)}
-                        disabled={!isConnected || !hasAdminRole || approvingId === ngo.id || isWriting || isConfirming}
-                        className="text-green-600 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {approvingId === ngo.id && (isWriting || isConfirming) ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
-                        ) : (
-                          <CheckCircleIcon className="h-5 w-5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleReject(ngo)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <XCircleIcon className="h-5 w-5" />
-                      </button>
+                      {ngo.statusVerification === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(ngo)}
+                            disabled={!isConnected || !hasAdminRole || approvingId === ngo.id || isWriting || isConfirming}
+                            className="text-green-600 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {approvingId === ngo.id && (isWriting || isConfirming) ? (
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                            ) : (
+                              <CheckCircleIcon className="h-5 w-5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleReject(ngo)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <XCircleIcon className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -314,22 +359,69 @@ export default function NGOPage() {
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={() => setShowModal(false)} />
             <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
               <h2 className="text-xl font-bold mb-4">{selectedNGO.organizationName}</h2>
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-sm text-gray-900">{selectedNGO.email}</p>
+                  <label className="text-sm font-medium text-gray-500">Organization Name</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.organizationName}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Wallet Address</label>
+                  <label className="text-sm font-medium text-gray-500">Year Established</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.yearEstablished}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">NGO Identification Number</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.ngoIdentificationNumber}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Email Address</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.emailAddress || selectedNGO.orgEmailAddress}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Mission Statement</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.missionStatement}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Website/Social Links</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.websiteOrSocialLinks}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Country of Operation</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.countryOfOperation || selectedNGO.orgCountryOfOperation}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Description</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.orgDescription}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Connected Wallet</label>
                   <p className="text-sm text-gray-900 font-mono">
-                    {formatAddress(selectedNGO.walletAddress as `0x${string}`)}
+                    {formatAddress(selectedNGO.connectedWallet as `0x${string}`)}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Country</label>
-                  <p className="text-sm text-gray-900">{selectedNGO.countryOfOperation}</p>
+                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.statusVerification}</p>
                 </div>
-                {/* Add more fields as needed */}
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Contact Person</label>
+                  <p className="text-sm text-gray-900">{selectedNGO.contactPersonName} ({selectedNGO.contactPersonPosition})</p>
+                  <p className="text-sm text-gray-500">{selectedNGO.contactPersonEmailAddress}</p>
+                  <p className="text-sm text-gray-500">{selectedNGO.contactPersonPhoneNumber}</p>
+                </div>
+                {selectedNGO.orgImages && selectedNGO.orgImages.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Organization Images</label>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {selectedNGO.orgImages.map((image, idx) => (
+                        <img key={idx} src={image} alt={`Organization image ${idx + 1}`} className="w-full h-32 object-cover rounded" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Created At</label>
+                  <p className="text-sm text-gray-900">{new Date(selectedNGO.createdAt).toLocaleString()}</p>
+                </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
                 <button
