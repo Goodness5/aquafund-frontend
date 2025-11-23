@@ -5,25 +5,32 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
+import { useAuthStore } from "../../../services/store/authStore";
 
 const AUTH_TOKEN_KEY = "access_token";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { user, isAuthenticated, loadFromStorage, setAuth } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Load auth from storage on mount
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
   // Redirect if already authenticated
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (token) {
+    if (typeof window !== "undefined" && isAuthenticated && user) {
+      // If user has NGO, go to dashboard, otherwise stay on sign-in (they'll be redirected after login)
+      if (user.ngoId !== null) {
         router.push("/dashboard");
       }
     }
-  }, [router]);
+  }, [isAuthenticated, user, router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,25 +43,48 @@ export default function SignInPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/accounts/sign-in", {
+      const response = await fetch("/api/v1/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to sign in");
+        // Show generic message for 500 errors
+        if (response.status >= 500) {
+          throw new Error("Internal server error occurred. Please retry.");
+        }
+        throw new Error(data.error || "Failed to sign in");
       }
 
-      const data = await response.json();
-      if (data.token) {
-        localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-        // Redirect to dashboard or return URL
-        const returnUrl = new URLSearchParams(window.location.search).get("return") || "/dashboard";
-        router.push(returnUrl);
+      // Store user data and token in Zustand store
+      if (data.success && data.data) {
+        const { user: userData, token } = data.data;
+        
+        // Save to Zustand store
+        setAuth(userData, token);
+        
+        // Also save token to localStorage for backward compatibility
+        if (token) {
+          localStorage.setItem(AUTH_TOKEN_KEY, token);
+        }
+
+        // Check if user has ngoId, if not, route to NGO setup
+        // If ngoId exists, route to dashboard
+        const returnUrl = new URLSearchParams(window.location.search).get("return");
+        if (returnUrl) {
+          router.push(returnUrl);
+        } else if (userData.ngoId === null) {
+          // User doesn't have NGO, route to NGO setup
+          router.push("/ngo/get-started");
+        } else {
+          // User already has NGO, route to dashboard
+          router.push("/dashboard");
+        }
       } else {
-        throw new Error("No token received from server");
+        throw new Error("Invalid response from server");
       }
     } catch (error) {
       console.error("Failed to sign in:", error);

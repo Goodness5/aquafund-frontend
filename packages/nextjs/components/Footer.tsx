@@ -49,7 +49,6 @@ const socials = [
 
 export default function Footer() {
   return (
-<<<<<<< HEAD
 
 
     
@@ -64,17 +63,6 @@ export default function Footer() {
             <Image src="/logo.svg" alt="AquaFund Logo" width={150} height={140} className="mb-1" />
             <span className="text-[1.1em]">Based in Adelaide, Australia</span>
             <span className="text-[1.1em]">Reach us: <Link href="mailto:support@aquafund.com" className="">support@aquafund.com</Link></span>
-=======
-    <div className="min-h-0 py-5 px-1 mb-11 lg:mb-0">
-      <div>
-        <div className="fixed flex justify-between items-center w-full z-10 p-4 bottom-0 left-0 pointer-events-none">
-          <div className="flex flex-col md:flex-row gap-2 pointer-events-auto">
-            {nativeCurrencyPrice > 0 && (
-              <div className="text-sm opacity-70">
-                1 {targetNetwork.nativeCurrency.symbol} ≈ {nativeCurrencyPrice.toFixed(2)} USD
-              </div>
-            )}
->>>>>>> master
           </div>
           {/* Get Involved */}
           <div className="flex flex-col ">

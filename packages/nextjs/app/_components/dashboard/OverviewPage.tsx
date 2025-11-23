@@ -1,11 +1,13 @@
 "use client";
 
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRightIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+import { ArrowUpRightIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { FadeInSection } from "../FadeInSection";
 import VerificationBanner from "./VerificationBanner";
 import MetricsCards from "./MetricsCards";
+import { useAuthStore } from "../../../services/store/authStore";
 
 // Lazy load heavy components
 const DonationTrendsChart = lazy(() => import("./DonationTrendsChart"));
@@ -33,15 +35,57 @@ const TableSkeleton = () => (
 );
 
 export default function OverviewPage() {
+  const router = useRouter();
+  const { user, isAuthenticated, loadFromStorage } = useAuthStore();
+  const [hasNgo, setHasNgo] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setHasNgo(user.ngoId !== null);
+    }
+  }, [isAuthenticated, user]);
+
   return (
     <div className="w-full max-w-full min-w-0">
+      {/* NGO Setup Banner - Show if user doesn't have NGO */}
+      {hasNgo === false && (
+        <FadeInSection delay={0}>
+          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 lg:p-6 mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <ExclamationTriangleIcon className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-lg font-semibold text-[#001627] mb-1">
+                    Complete Your NGO Setup
+                  </h3>
+                  <p className="text-sm text-[#475068]">
+                    Set up your NGO profile to start creating fundraisers and receiving donations.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/ngo/get-started"
+                className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2 lg:py-3 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-all duration-300 font-medium text-sm lg:text-base whitespace-nowrap"
+              >
+                Set Up NGO
+                <ArrowUpRightIcon className="w-4 h-4 lg:w-5 lg:h-5" />
+              </Link>
+            </div>
+          </div>
+        </FadeInSection>
+      )}
+
       {/* Verification Banner */}
-      <FadeInSection delay={0}>
+      <FadeInSection delay={hasNgo === false ? 100 : 0}>
         <VerificationBanner isVerified={false} />
       </FadeInSection>
 
       {/* Header Section */}
-      <FadeInSection delay={100}>
+      <FadeInSection delay={hasNgo === false ? 200 : 100}>
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-[#001627] mb-2">Overview</h1>
@@ -58,12 +102,12 @@ export default function OverviewPage() {
       </FadeInSection>
 
       {/* Metrics Cards */}
-      <FadeInSection delay={200}>
+      <FadeInSection delay={hasNgo === false ? 300 : 200}>
         <MetricsCards />
       </FadeInSection>
 
       {/* Charts Row */}
-      <FadeInSection delay={300}>
+      <FadeInSection delay={hasNgo === false ? 400 : 300}>
         <div className="flex flex-col lg:flex-row gap-6 mb-6 lg:items-stretch min-w-0">
           <div className="w-full flex min-w-0">
             <Suspense fallback={<ChartSkeleton />}>
@@ -79,7 +123,7 @@ export default function OverviewPage() {
       </FadeInSection>
 
       {/* Active Fundraiser */}
-      <FadeInSection delay={400}>
+      <FadeInSection delay={hasNgo === false ? 500 : 400}>
         <div className="mb-6">
           <h2 className="text-xl lg:text-2xl font-semibold text-[#001627] mb-4">Active Fundraiser</h2>
           <Suspense fallback={<div className="bg-white rounded-xl p-6 shadow-inner animate-pulse h-48"></div>}>
@@ -89,7 +133,7 @@ export default function OverviewPage() {
       </FadeInSection>
 
       {/* Recent Donations */}
-      <FadeInSection delay={500}>
+      <FadeInSection delay={hasNgo === false ? 600 : 500}>
         <Suspense fallback={<TableSkeleton />}>
           <RecentDonationsTable />
         </Suspense>

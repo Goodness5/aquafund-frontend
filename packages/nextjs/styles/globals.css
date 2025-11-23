@@ -33,7 +33,6 @@
   --af-overlay: #cffed914;
 }
 
-<<<<<<< HEAD
 :root,
 [data-theme] {
   background: var(--af-surface);
@@ -44,60 +43,6 @@ html, body {
   background: var(--af-surface) url('/background-noise.svg') repeat;
   background-size: cover;
   background-attachment: fixed;
-=======
-@plugin "daisyui/theme" {
-  name: "light";
-
-  /* AquaFund theme */
-  --color-primary: #032206;
-  --color-primary-content: #ffffff;
-  --color-secondary: #eefde11a;
-  --color-secondary-content: #032206;
-  --color-accent: #032206;
-  --color-accent-content: #ffffff;
-  --color-neutral: #032206;
-  --color-neutral-content: #ffffff;
-  --color-base-100: #ffffff;
-  --color-base-200: #eefde11a;
-  --color-base-300: #cac4d0;
-  --color-base-content: #032206;
-  --color-info: #032206;
-  --color-success: #2e7d32;
-  --color-warning: #b28704;
-  --color-error: #c62828;
-
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
-  --tt-tailw: 6px;
-}
-
-@plugin "daisyui/theme" {
-  name: "dark";
-
-  /* AquaFund dark variant */
-  --color-primary: #032206;
-  --color-primary-content: #f1fff4;
-  --color-secondary: #eefde11a;
-  --color-secondary-content: #f1fff4;
-  --color-accent: #032206;
-  --color-accent-content: #f1fff4;
-  --color-neutral: #f1fff4;
-  --color-neutral-content: #032206;
-  --color-base-100: #0f1711;
-  --color-base-200: #122015;
-  --color-base-300: #1a2a1c;
-  --color-base-content: #f1fff4;
-  --color-info: #7fb98a;
-  --color-success: #7fb98a;
-  --color-warning: #d1b26a;
-  --color-error: #ff7b6e;
-
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
-
-  --tt-tailw: 6px;
-  --tt-bg: var(--color-primary);
->>>>>>> master
 }
 
 /*
