@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircleIcon, ArrowRightIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
 
-export default function AccountUnderReviewPage() {
+function AccountUnderReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectTitle = searchParams.get("project");
@@ -103,6 +104,18 @@ export default function AccountUnderReviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountUnderReviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#1BCBEE33] via-[#00bf3c18] to-[#CFFED914] flex items-center justify-center p-4">
+        <div className="text-[#475068]">Loading...</div>
+      </div>
+    }>
+      <AccountUnderReviewContent />
+    </Suspense>
   );
 }
 

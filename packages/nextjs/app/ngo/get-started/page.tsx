@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useAccount } from "wagmi";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronLeftIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
@@ -64,7 +64,7 @@ const initialFormData: NGOAccountData = {
   adminIdentityVerification: undefined,
 };
 
-export default function GetStartedPage() {
+function GetStartedPageContent() {
   const { address } = useAccount();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -707,6 +707,18 @@ export default function GetStartedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GetStartedPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F5F5] flex items-center justify-center">
+        <div className="text-[#475068]">Loading...</div>
+      </div>
+    }>
+      <GetStartedPageContent />
+    </Suspense>
   );
 }
 
