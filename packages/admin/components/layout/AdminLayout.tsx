@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fffdfa]" style={{ backgroundImage: "url('/background-noise.svg')", backgroundRepeat: 'repeat', backgroundSize: 'cover', backgroundAttachment: 'fixed' }}>
       {/* Mobile sidebar */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
             <div className="flex h-16 items-center justify-between px-4 border-b">
               <h1 className="text-xl font-bold text-[#0350B5]">AquaFund Admin</h1>
-              <button onClick={() => setSidebarOpen(false)} className="text-gray-500">
+              <button onClick={() => setSidebarOpen(false)} className="text-[#001627]">
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-[#0350B5] text-white"
-                        : "text-gray-700 hover:bg-gray-100"
+                        : "text-[#001627] hover:bg-gray-100"
                     }`}
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-[#0350B5] text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      : "text-[#001627] hover:bg-gray-100"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -95,7 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-500"
+            className="lg:hidden text-[#001627]"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>

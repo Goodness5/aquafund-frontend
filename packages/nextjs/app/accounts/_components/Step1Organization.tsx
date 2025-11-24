@@ -1,6 +1,6 @@
 "use client";
 
-import { NGOAccountData } from "../get-started/page";
+import { NGOAccountData } from "../../ngo/get-started/page";
 import { useCountries } from "../../../hooks/useCountries";
 
 interface Step1OrganizationProps {

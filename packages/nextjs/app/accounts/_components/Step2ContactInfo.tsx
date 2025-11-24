@@ -1,6 +1,6 @@
 "use client";
 
-import { NGOAccountData } from "../get-started/page";
+import { NGOAccountData } from "../../ngo/get-started/page";
 
 interface Step2ContactInfoProps {
   formData: NGOAccountData;

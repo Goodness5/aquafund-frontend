@@ -57,7 +57,7 @@ export default function ProjectsPage() {
     functionName: "DEFAULT_ADMIN_ROLE",
   });
 
-  const { data: hasAdminRole } = useReadContract({
+  const { data: hasAdminRoleData } = useReadContract({
     address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
     abi: AquaFundRegistryAbi,
     functionName: "hasRole",
@@ -69,6 +69,9 @@ export default function ProjectsPage() {
       enabled: !!address && !!adminRole,
     },
   });
+
+  // Ensure hasAdminRole is a boolean
+  const hasAdminRole = Boolean(hasAdminRoleData);
 
   useEffect(() => {
     if (isRegisterConfirmed) {

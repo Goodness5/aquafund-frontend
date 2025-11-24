@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import { NGOAccountData } from "../get-started/page";
+import { NGOAccountData } from "../../ngo/get-started/page";
 
 interface Step3DocumentsProps {
   formData: NGOAccountData;
