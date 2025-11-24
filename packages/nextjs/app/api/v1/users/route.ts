@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const res = await fetch(`${backendUrl}/api/v1/send-otp`, {
+      const res = await fetch(`${backendUrl}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

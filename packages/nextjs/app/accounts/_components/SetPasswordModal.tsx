@@ -111,6 +111,20 @@ export default function SetPasswordModal({
         throw new Error(data.error || "Failed to create account");
       }
 
+      const response2 = await fetch("/api/v1/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data2 = await response2.json();
+
+      if (!response2.ok) {
+        throw new Error(data2.error || "Failed to send OTP");
+      }
+
+
+
       // OTP is sent automatically by backend
       setSuccessMessage("Account created! Please check your email for the OTP code.");
       setCurrentStep("otp");
@@ -375,6 +389,8 @@ export default function SetPasswordModal({
         <label className="block text-xs sm:text-sm font-medium text-[#475068] mb-2">
           Enter Verification Code
         </label>
+
+
         <input
           type="text"
           value={otp}
