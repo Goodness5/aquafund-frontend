@@ -16,11 +16,18 @@ export async function POST(
     const backendUrl = getBackendUrl();
     const { id } = await params;
 
+    // Forward auth token from request
+    const authHeader = req.headers.get("authorization");
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     const res = await fetch(`${backendUrl}/ngos/${id}/reject`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     if (!res.ok) {

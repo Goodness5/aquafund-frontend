@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useWeb3Auth } from "../../hooks/useWeb3Auth";
+import { useAuthStore } from "../../services/store/authStore";
 import {
   BuildingOfficeIcon,
   DocumentCheckIcon,
@@ -11,6 +13,7 @@ import {
   Cog6ToothIcon,
   Bars3Icon,
   XMarkIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -23,6 +26,8 @@ const navigation = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { logout } = useWeb3Auth();
+  const { address, role } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-[#fffdfa]" style={{ backgroundImage: "url('/background-noise.svg')", backgroundRepeat: 'repeat', backgroundSize: 'cover', backgroundAttachment: 'fixed' }}>
@@ -37,26 +42,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
-            <nav className="flex-1 space-y-1 px-2 py-4">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#0350B5] text-white"
-                        : "text-[#001627] hover:bg-gray-100"
-                    }`}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
+          <nav className="flex-1 space-y-1 px-2 py-4">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-[#0350B5] text-white"
+                      : "text-[#001627] hover:bg-gray-100"
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+          {/* Logout button */}
+          <div className="p-2 border-t border-gray-200">
+            <button
+              onClick={() => {
+                logout();
+                setSidebarOpen(false);
+              }}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors"
+            >
+              <ArrowRightOnRectangleIcon className="h-5 w-5" />
+              Logout
+            </button>
+          </div>
           </div>
         </div>
       )}
@@ -86,6 +104,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               );
             })}
           </nav>
+          {/* Logout button */}
+          <div className="p-2 border-t border-gray-200">
+            <button
+              onClick={logout}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 w-full transition-colors"
+            >
+              <ArrowRightOnRectangleIcon className="h-5 w-5" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -99,7 +127,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
-          <div className="flex flex-1 justify-end">
+          <div className="flex flex-1 items-center justify-end gap-4">
+            {/* Admin info */}
+            <div className="hidden sm:flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Role:</span>
+              <span className="font-medium text-[#0350B5]">{role || "Admin"}</span>
+            </div>
             <ConnectButton />
           </div>
         </div>

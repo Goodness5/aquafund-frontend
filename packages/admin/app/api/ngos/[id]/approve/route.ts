@@ -18,12 +18,19 @@ export async function POST(
     const body = await req.json();
     const { walletAddress, txHash } = body;
 
+    // Forward auth token from request
+    const authHeader = req.headers.get("authorization");
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     // Update NGO status in backend
     const res = await fetch(`${backendUrl}/ngos/${id}/approve`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         walletAddress,
         txHash,

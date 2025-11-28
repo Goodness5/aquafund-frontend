@@ -6,6 +6,8 @@ import { RainbowKitProvider, lightTheme, darkTheme } from "@rainbow-me/rainbowki
 import { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { wagmiConfig } from "../services/web3/wagmiConfig";
+import { AdminAuthGuard } from "../components/auth/AdminAuthGuard";
+import AdminLayout from "../components/layout/AdminLayout";
 import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
 
@@ -36,7 +38,9 @@ export default function RootLayout({
             <RainbowKitProvider
               theme={mounted ? lightTheme() : lightTheme()}
             >
-              {children}
+              <AdminAuthGuard>
+                <AdminLayout>{children}</AdminLayout>
+              </AdminAuthGuard>
               <Toaster position="top-right" />
             </RainbowKitProvider>
           </QueryClientProvider>

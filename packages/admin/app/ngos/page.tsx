@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { isAddress } from "viem";
 import toast from "react-hot-toast";
+import { authenticatedFetch } from "../../utils/api";
 
 const formatAddress = (address: `0x${string}`) => {
   if (!isAddress(address)) return address;
@@ -88,13 +89,16 @@ export default function NGOPage() {
   const fetchNGOs = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/ngos?status=pending");
+      const res = await authenticatedFetch("/api/ngos?status=pending");
       if (res.ok) {
         const data = await res.json();
         setNgos(data);
+      } else {
+        toast.error("Failed to fetch NGOs");
       }
     } catch (error) {
       console.error("Failed to fetch NGOs:", error);
+      toast.error("Failed to fetch NGOs");
     } finally {
       setLoading(false);
     }
@@ -138,9 +142,8 @@ export default function NGOPage() {
 
   const handleApproveBackend = async (ngoId: string, txHash: string) => {
     try {
-      const res = await fetch(`/api/ngos/${ngoId}/approve`, {
+      const res = await authenticatedFetch(`/api/ngos/${ngoId}/approve`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           walletAddress: selectedNGO?.walletAddress,
           txHash,
@@ -167,9 +170,8 @@ export default function NGOPage() {
     }
 
     try {
-      const res = await fetch(`/api/ngos/${ngo.id}/reject`, {
+      const res = await authenticatedFetch(`/api/ngos/${ngo.id}/reject`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
       });
 
       if (res.ok) {
