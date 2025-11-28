@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { isAddress } from "viem";
 import toast from "react-hot-toast";
+import { authenticatedFetch } from "../../utils/api";
 
 const formatAddress = (address: `0x${string}`) => {
   if (!isAddress(address)) return address;
@@ -168,7 +169,7 @@ export default function NGOPage() {
   const handleApproveBackend = async (ngoId: string, txHash: string) => {
     try {
       // Update statusVerification to APPROVED using PUT request
-      const res = await fetch(`/api/v1/ngos/${ngoId}`, {
+      const res = await authenticatedFetch(`/api/v1/ngos/${ngoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -199,7 +200,7 @@ export default function NGOPage() {
 
     try {
       // Update statusVerification to REJECTED using PUT request
-      const res = await fetch(`/api/v1/ngos/${ngo.id}`, {
+      const res = await authenticatedFetch(`/api/v1/ngos/${ngo.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
