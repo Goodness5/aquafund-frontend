@@ -39,6 +39,7 @@ Only wallets with `DEFAULT_ADMIN_ROLE` in the AquaFundRegistry contract can appr
 
 ## API Routes
 
+- `GET /api/v1/ngos` - Fetch all NGOs
 - `GET /api/ngos?status=pending` - Fetch pending NGOs
 - `POST /api/ngos/[id]/approve` - Approve an NGO (updates backend after on-chain approval)
 - `POST /api/ngos/[id]/reject` - Reject an NGO

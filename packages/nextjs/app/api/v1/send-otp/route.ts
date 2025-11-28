@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Validate required fields
-    const { email, password } = body;
+    const {  email } = body;
     
-    if (!email || !password) {
+    if ( !email ) {
       return NextResponse.json(
-        { error: "Missing required fields: email and password are required" },
+        { error: "Email is required" },
         { status: 400 }
       );
     }
@@ -32,17 +32,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const res = await fetch(`${backendUrl}/login`, {
+
+    const res = await fetch(`${backendUrl}/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email}),
     });
 
     const data = await res.json();
+    console.log(`This is the RESPNSE FROM THE BACKEND ON OTP SEND: ${JSON.stringify(data)}`);
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to login";
+    const message = error instanceof Error ? error.message : "Failed to create user";
     const status = message === "Backend URL not set" ? 500 : 502;
+    console.log(`This is the ERROR FROM THE BACKEND ON OTP SEND: ${message}`);
     return NextResponse.json({ error: message }, { status });
   }
 }
