@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { isAddress } from "viem";
 import toast from "react-hot-toast";
@@ -44,6 +45,7 @@ interface NGO {
 }
 
 export default function NGOPage() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const [ngos, setNgos] = useState<NGO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,12 +167,12 @@ export default function NGOPage() {
 
   const handleApproveBackend = async (ngoId: string, txHash: string) => {
     try {
-      const res = await fetch(`/api/ngos/${ngoId}/approve`, {
-        method: "POST",
+      // Update statusVerification to APPROVED using PUT request
+      const res = await fetch(`/api/v1/ngos/${ngoId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          walletAddress: selectedNGO?.connectedWallet,
-          txHash,
+          statusVerification: "APPROVED",
         }),
       });
 
@@ -180,11 +182,13 @@ export default function NGOPage() {
         setShowModal(false);
         setSelectedNGO(null);
       } else {
-        throw new Error("Failed to update backend");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update backend");
       }
     } catch (error) {
       console.error("Failed to update backend:", error);
-      alert("NGO approved on-chain but failed to update backend. Please update manually.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to update backend";
+      alert(`NGO approved on-chain but failed to update backend: ${errorMessage}. Please update manually.`);
     }
   };
 
@@ -194,17 +198,26 @@ export default function NGOPage() {
     }
 
     try {
-      const res = await fetch(`/api/ngos/${ngo.id}/reject`, {
-        method: "POST",
+      // Update statusVerification to REJECTED using PUT request
+      const res = await fetch(`/api/v1/ngos/${ngo.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          statusVerification: "REJECTED",
+        }),
       });
 
       if (res.ok) {
-        toast.success("NGO rejected");
+        toast.success("NGO rejected successfully");
         fetchNGOs();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to reject NGO");
       }
     } catch (error) {
       console.error("Failed to reject:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to reject NGO";
+      toast.error(errorMessage);
     }
   };
 
@@ -274,7 +287,11 @@ export default function NGOPage() {
               </tr>
             ) : (
               ngos.map((ngo) => (
-                <tr key={ngo.id} className="hover:bg-gray-50">
+                <tr 
+                  key={ngo.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/ngos/${ngo.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
                       {ngo.organizationName}
@@ -312,13 +329,11 @@ export default function NGOPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={() => {
-                          setSelectedNGO(ngo);
-                          setShowModal(true);
-                        }}
+                        onClick={() => router.push(`/ngos/${ngo.id}`)}
                         className="text-[#0350B5] hover:text-[#034093]"
+                        title="View details"
                       >
                         <EyeIcon className="h-5 w-5" />
                       </button>
@@ -328,6 +343,7 @@ export default function NGOPage() {
                             onClick={() => handleApprove(ngo)}
                             disabled={!isConnected || !hasAdminRole || approvingId === ngo.id || isWriting || isConfirming}
                             className="text-green-600 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Approve NGO"
                           >
                             {approvingId === ngo.id && (isWriting || isConfirming) ? (
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
@@ -338,6 +354,7 @@ export default function NGOPage() {
                           <button
                             onClick={() => handleReject(ngo)}
                             className="text-red-600 hover:text-red-800"
+                            title="Reject NGO"
                           >
                             <XCircleIcon className="h-5 w-5" />
                           </button>
