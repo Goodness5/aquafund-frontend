@@ -40,6 +40,8 @@ export interface NGOAccountData {
   certificateOfRegistration?: File;
   ngoLogo?: File;
   adminIdentityVerification?: File;
+  // Cloudinary URLs (set after successful upload)
+  orgImageUrls?: string[];
 }
 
 const initialFormData: NGOAccountData = {
@@ -62,6 +64,7 @@ const initialFormData: NGOAccountData = {
   certificateOfRegistration: undefined,
   ngoLogo: undefined,
   adminIdentityVerification: undefined,
+  orgImageUrls: [],
 };
 
 function GetStartedPageContent() {
@@ -341,11 +344,14 @@ function GetStartedPageContent() {
           formData.contactEmail
         );
       case 3: // Documents
+        // Check that all 3 images are uploaded and have Cloudinary URLs
         return !!(
+          formData.orgImageUrls &&
+          formData.orgImageUrls.length >= 3 &&
           formData.certificateOfRegistration &&
           formData.ngoLogo &&
           formData.adminIdentityVerification
-        ); // All three documents required
+        ); // All three documents required with Cloudinary URLs
       case 4: // Wallet
         return !!formData.walletAddress;
       case 5: // Preview
@@ -384,40 +390,17 @@ function GetStartedPageContent() {
 
     setIsSubmitting(true);
     try {
-      // Helper function to check if value is a File or Blob
-      const isFileOrBlob = (value: unknown): value is File | Blob => {
-        return value instanceof File || value instanceof Blob;
-      };
-      
-      // Helper function to convert file to base64
-      const fileToBase64 = (file: File | Blob): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
-      };
-      
-      // Convert files to base64 strings
-      const imagePromises: Promise<string>[] = [];
-      
-      if (formData.ngoLogo && isFileOrBlob(formData.ngoLogo)) {
-        imagePromises.push(fileToBase64(formData.ngoLogo));
-      }
-      if (formData.certificateOfRegistration && isFileOrBlob(formData.certificateOfRegistration)) {
-        imagePromises.push(fileToBase64(formData.certificateOfRegistration));
-      }
-      if (formData.adminIdentityVerification && isFileOrBlob(formData.adminIdentityVerification)) {
-        imagePromises.push(fileToBase64(formData.adminIdentityVerification));
-      }
-      
-      // Wait for all images to be converted to base64
-      const orgImages = await Promise.all(imagePromises);
+      // Use Cloudinary URLs from formData
+      const orgImages = formData.orgImageUrls || [];
       
       // Backend requires at least 1 image
       if (orgImages.length === 0) {
         throw new Error("At least one image is required. Please upload at least one document (NGO Logo, Certificate, or ID).");
+      }
+      
+      // Ensure all 3 images are uploaded
+      if (orgImages.length < 3) {
+        throw new Error("Please ensure all three images (Certificate, Logo, and Admin ID) are uploaded successfully.");
       }
 
       // Get user ID from auth store
@@ -425,10 +408,17 @@ function GetStartedPageContent() {
         throw new Error("User not authenticated. Please sign in again.");
       }
 
+      // Validate and parse yearEstablished
+      const yearEstablished = parseInt(formData.yearEstablished);
+      if (isNaN(yearEstablished) || yearEstablished < 1800) {
+        throw new Error("Year established must be a valid year (1800 or later).");
+      }
+
       // Map form data to backend NGO schema
+      // Note: userId is removed as backend gets it from auth token
       const ngoData = {
         organizationName: formData.organizationName,
-        yearEstablished: parseInt(formData.yearEstablished) || 0,
+        yearEstablished: yearEstablished,
         countryOfOperation: formData.countryOfOperation,
         ngoIdentificationNumber: formData.ngoRegistrationNumber,
         emailAddress: formData.email || user.email,
@@ -445,7 +435,6 @@ function GetStartedPageContent() {
         orgImages: orgImages,
         connectedWallet: formData.walletAddress,
         statusVerification: "PENDING" as const,
-        userId: user.id,
       };
 
       console.log("Submitting NGO data:", {
@@ -475,9 +464,23 @@ function GetStartedPageContent() {
       try {
         result = await response.json();
       } catch (error) {
-        const text = await response.text();
-        console.error("Failed to parse response:", text);
-        throw new Error(`Server returned invalid response: ${text}`);
+        // If JSON parsing fails, try to get text response
+        const text = await response.text().catch(() => "Unable to read response");
+        console.error("Failed to parse response as JSON:", text);
+        
+        // Check if it's the "Backend returned non-JSON response" error from our API route
+        try {
+          const parsedError = JSON.parse(text);
+          if (parsedError.error === "Backend returned non-JSON response") {
+            const backendError = `Backend error (${parsedError.status}): ${parsedError.statusText || "Unknown error"}. ${parsedError.responsePreview ? `Response: ${parsedError.responsePreview}` : ""}`;
+            console.error("Backend returned non-JSON response:", parsedError);
+            throw new Error(backendError);
+          }
+        } catch {
+          // If we can't parse the error JSON either, just show the text
+        }
+        
+        throw new Error(`Server returned invalid response: ${text.substring(0, 200)}`);
       }
 
       if (!response.ok) {
@@ -499,6 +502,12 @@ function GetStartedPageContent() {
         
         // Show generic message for 500 errors
         if (response.status >= 500) {
+          // Check if we have more details about the backend error
+          if (result?.error === "Backend returned non-JSON response") {
+            throw new Error(
+              `Backend server error (${result.status || response.status}): ${result.statusText || response.statusText}. Please check your backend server or try again later.`
+            );
+          }
           throw new Error("Internal server error occurred. Please retry.");
         }
         

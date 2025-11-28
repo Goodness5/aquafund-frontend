@@ -204,6 +204,66 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cloudinary-util/types@npm:1.5.10":
+  version: 1.5.10
+  resolution: "@cloudinary-util/types@npm:1.5.10"
+  checksum: 0e033dfe1c337141fe6614fda780602bd3ec48c7a4dedccf617380ae6402430c92441b275712c0733d3e34cad47bd1cf41951703b8cdafb19d1babcbc1ec5027
+  languageName: node
+  linkType: hard
+
+"@cloudinary-util/url-loader@npm:5.10.4":
+  version: 5.10.4
+  resolution: "@cloudinary-util/url-loader@npm:5.10.4"
+  dependencies:
+    "@cloudinary-util/types": 1.5.10
+    "@cloudinary-util/util": 3.3.2
+    "@cloudinary/url-gen": 1.15.0
+    zod: ^3.22.4
+  checksum: 44e7b807159ecd4795475599516a87a1ab44f04313d99d8fbcaf84d84be6c8c0d982049ac02bc4d8cbc6abda67bdd462ec496edec5f6d679102e33720a17941b
+  languageName: node
+  linkType: hard
+
+"@cloudinary-util/util@npm:3.3.2":
+  version: 3.3.2
+  resolution: "@cloudinary-util/util@npm:3.3.2"
+  checksum: fb4fa4c14c56eb88750d834d1f497479fc34cdbdeb4fa2d601f9e03497e51b1bddad43b3616e32bae6690cccdaaa664211226368f62c3e1bf23c5e05d1b91b0f
+  languageName: node
+  linkType: hard
+
+"@cloudinary-util/util@npm:4.0.0":
+  version: 4.0.0
+  resolution: "@cloudinary-util/util@npm:4.0.0"
+  checksum: 0ac65c2ec59c5369a31102d4f2927e13f958afa0561084e97a70707797afb7523ce76e92de39aeb345c25bf44de42cc10772636985e2f7d18afa3ac3ea6f5887
+  languageName: node
+  linkType: hard
+
+"@cloudinary/transformation-builder-sdk@npm:^1.10.0, @cloudinary/transformation-builder-sdk@npm:^1.15.1":
+  version: 1.21.2
+  resolution: "@cloudinary/transformation-builder-sdk@npm:1.21.2"
+  dependencies:
+    "@cloudinary/url-gen": ^1.7.0
+  checksum: 6569fc60aa821aa91983e3b51f4b4b4005a6089bd19bbb5ef74772352e9f1028175cc67346bbf519dc207801dff83babc891666a92288d4606be90012c988429
+  languageName: node
+  linkType: hard
+
+"@cloudinary/url-gen@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@cloudinary/url-gen@npm:1.15.0"
+  dependencies:
+    "@cloudinary/transformation-builder-sdk": ^1.10.0
+  checksum: 774c4cf9978c31dd783576897f9ee309d30572c48e94e3366cc79ec69e1e6e7300cd373e360f18d5d16950cd521ee8905810ac9edc5b6748b2e5b8b8cfb40261
+  languageName: node
+  linkType: hard
+
+"@cloudinary/url-gen@npm:^1.7.0":
+  version: 1.22.0
+  resolution: "@cloudinary/url-gen@npm:1.22.0"
+  dependencies:
+    "@cloudinary/transformation-builder-sdk": ^1.15.1
+  checksum: 4553a84f09434c2294b075c87133c3e0b448297e7d5021b3668a026fd04916f5f6efe490d87e1d9ec26ffba54562671642c62d844da0859f4d8541ea221e7680
+  languageName: node
+  linkType: hard
+
 "@coinbase/wallet-sdk@npm:4.3.6":
   version: 4.3.6
   resolution: "@coinbase/wallet-sdk@npm:4.3.6"
@@ -2633,6 +2693,7 @@ __metadata:
     eslint: ^9.23.0
     eslint-config-next: ^15.2.3
     next: ~15.2.3
+    next-cloudinary: ^6.17.5
     next-themes: ~0.3.0
     react: ~19.0.0
     react-dom: ~19.0.0
@@ -2663,6 +2724,7 @@ __metadata:
     bgipfs: ~0.0.12
     blo: ~1.2.0
     burner-connector: 0.0.18
+    cloudinary: ^2.8.0
     eslint: ~9.23.0
     eslint-config-next: ~15.2.3
     eslint-config-prettier: ~10.1.1
@@ -5646,6 +5708,16 @@ __metadata:
     strip-ansi: ^6.0.0
     wrap-ansi: ^6.2.0
   checksum: 4fcfd26d292c9f00238117f39fc797608292ae36bac2168cfee4c85923817d0607fe21b3329a8621e01aedf512c99b7eaa60e363a671ffd378df6649fb48ae42
+  languageName: node
+  linkType: hard
+
+"cloudinary@npm:^2.8.0":
+  version: 2.8.0
+  resolution: "cloudinary@npm:2.8.0"
+  dependencies:
+    lodash: ^4.17.21
+    q: ^1.5.1
+  checksum: f79ab4393f422a34746be65a45d88bf1fc7e2d98932b24e30fefdb1659758dd80ac6d13170a7406b7c9f16fa470f266b0dd6bf061a2ea12b0235a211ab4ed8bb
   languageName: node
   linkType: hard
 
@@ -10761,6 +10833,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"next-cloudinary@npm:^6.17.5":
+  version: 6.17.5
+  resolution: "next-cloudinary@npm:6.17.5"
+  dependencies:
+    "@cloudinary-util/types": 1.5.10
+    "@cloudinary-util/url-loader": 5.10.4
+    "@cloudinary-util/util": 4.0.0
+  peerDependencies:
+    next: ^12 || ^13 || ^14 || >=15.0.0-rc || ^15
+    react: ^17 || ^18 || >=19.0.0-beta || ^19
+  checksum: 70c7bb6da190f8955e09bfbf43082d90a03624086773e6b6eeda24700d12d9a1da3996a6fdf39372059966ab8a79b4c5fd3ea730c4aa4a4d0a4b5f2e75f85615
+  languageName: node
+  linkType: hard
+
 "next-nprogress-bar@npm:~2.3.13":
   version: 2.3.16
   resolution: "next-nprogress-bar@npm:2.3.16"
@@ -12232,6 +12318,13 @@ __metadata:
   version: 2.3.1
   resolution: "punycode@npm:2.3.1"
   checksum: bb0a0ceedca4c3c57a9b981b90601579058903c62be23c5e8e843d2c2d4148a3ecf029d5133486fb0e1822b098ba8bba09e89d6b21742d02fa26bda6441a6fb2
+  languageName: node
+  linkType: hard
+
+"q@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "q@npm:1.5.1"
+  checksum: 147baa93c805bc1200ed698bdf9c72e9e42c05f96d007e33a558b5fdfd63e5ea130e99313f28efc1783e90e6bdb4e48b67a36fcc026b7b09202437ae88a1fb12
   languageName: node
   linkType: hard
 

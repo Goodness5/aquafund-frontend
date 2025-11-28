@@ -28,8 +28,10 @@ export async function POST(req: NextRequest) {
       headers["Authorization"] = authHeader;
     }
 
-    const backendEndpoint = `${backendUrl}/api/v1/ngos`;
+
+    const backendEndpoint = `${backendUrl}/ngos`;
     console.log("Calling backend endpoint:", backendEndpoint);
+    console.log("If this fails, backend might expect:", `${backendUrl}/ngos`);
     console.log("Request headers:", JSON.stringify(headers, null, 2));
 
     const res = await fetch(backendEndpoint, {
@@ -65,12 +67,18 @@ export async function POST(req: NextRequest) {
       }
       
       // For other errors, return the HTML/text response info
+      // Check if it's an HTML error page (common for 404, 500, etc.)
+      const isHtmlError = responseText.trim().startsWith("<!") || responseText.includes("<html");
+      
       return NextResponse.json(
         { 
-          error: "Backend returned non-JSON response",
+          error: isHtmlError 
+            ? `Backend returned HTML error page (likely ${res.status} error). Please check if the backend server is running and the endpoint is correct.`
+            : "Backend returned non-JSON response",
           status: res.status,
           statusText: res.statusText,
-          responsePreview: responseText.substring(0, 200)
+          responsePreview: responseText.substring(0, 500),
+          endpoint: backendEndpoint,
         },
         { status: res.status }
       );

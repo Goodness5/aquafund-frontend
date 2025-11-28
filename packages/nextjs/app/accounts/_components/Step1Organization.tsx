@@ -35,13 +35,18 @@ export default function Step1Organization({
           Year Established
         </label>
         <input
-          type="text"
+          type="number"
           value={formData.yearEstablished}
           onChange={(e) => updateFormData({ yearEstablished: e.target.value })}
-          placeholder="Enter year"
+          placeholder="Enter year (e.g., 2020)"
+          min="1800"
+          max={new Date().getFullYear()}
           style={{ fontSize: "0.9em", padding: "0.5em 0.75em" }}
           className="w-full border-2 border-[#CAC4D0] rounded-lg focus:outline-none focus:border-[#0350B5] transition-colors"
         />
+        <p style={{ fontSize: "0.75em" }} className="text-[#475068] mt-1">
+          Must be between 1800 and {new Date().getFullYear()}
+        </p>
       </div>
 
       <div>
