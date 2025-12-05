@@ -3,6 +3,7 @@
  */
 
 import { useAuthStore } from "../services/store/authStore";
+import { isTokenValid } from "../services/auth/web3Auth";
 
 /**
  * Make an authenticated API request to the backend via Next.js API routes
@@ -11,16 +12,24 @@ export async function authenticatedFetch(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const { token } = useAuthStore.getState();
+  const { token, expiresAt } = useAuthStore.getState();
+
+  // Validate token exists and is not expired
+  if (!token) {
+    throw new Error("Authentication required. Please connect your wallet and sign in.");
+  }
+
+  if (expiresAt && !isTokenValid(expiresAt)) {
+    // Token expired, clear it
+    useAuthStore.getState().clearAuth();
+    throw new Error("Session expired. Please reconnect your wallet and sign in again.");
+  }
 
   const headers: HeadersInit = {
     "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
     ...options.headers,
   };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   return fetch(endpoint, {
     ...options,

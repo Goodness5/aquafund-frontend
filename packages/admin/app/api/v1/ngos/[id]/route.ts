@@ -20,9 +20,23 @@ export async function PUT(
     console.log("Updating NGO with ID:", id);
     console.log("Update data:", JSON.stringify(body, null, 2));
 
-    // Get authorization header from request
+    // Get authorization header from request - REQUIRED for this operation
     const authHeader = req.headers.get("authorization");
     console.log("Authorization header present:", !!authHeader);
+    if (authHeader) {
+      // Log first few chars to verify format (without exposing full token)
+      const headerPreview = authHeader.substring(0, 20) + "...";
+      console.log("Authorization header format:", headerPreview);
+    }
+
+    // Require authentication for PUT operations
+    if (!authHeader) {
+      console.error("PUT request missing authorization header");
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
 
     // Backend URL already includes /api/v1, so just use /ngos/{id}
     const endpoint = `${backendUrl}/ngos/${id}`;
@@ -30,10 +44,8 @@ export async function PUT(
     
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      "Authorization": authHeader, // Always include since we validated it exists
     };
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
     
     const res = await fetch(endpoint, {
       method: "PUT",

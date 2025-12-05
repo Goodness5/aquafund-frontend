@@ -21,6 +21,7 @@ import {
 import externalContracts from "../../../contracts/externalContracts";
 import AquaFundRegistryAbi from "../../../contracts/abis/AquaFundRegistry.json";
 import Image from "next/image";
+import { authenticatedFetch } from "../../../utils/api";
 
 interface NGO {
   id: string;
@@ -112,7 +113,7 @@ export default function NGODetailPage() {
   const fetchNGO = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/ngos/${ngoId}`);
+      const res = await authenticatedFetch(`/api/ngos/${ngoId}`);
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -185,41 +186,10 @@ export default function NGODetailPage() {
 
   const handleApproveBackend = async (ngoId: string, txHash: string) => {
     try {
-      // Get auth token for authentication
-      // Check multiple possible token keys
-      const token = typeof window !== "undefined" 
-        ? localStorage.getItem("access_token") || 
-          localStorage.getItem("token") ||
-          (() => {
-            try {
-              const authStorage = localStorage.getItem("auth-storage");
-              if (authStorage) {
-                const parsed = JSON.parse(authStorage);
-                return parsed?.state?.token || parsed?.token || null;
-              }
-            } catch {
-              return null;
-            }
-            return null;
-          })()
-        : null;
-      
-      console.log("Token found:", !!token);
-      
       // Update statusVerification to APPROVED using PUT request
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-        console.log("Authorization header added");
-      } else {
-        console.warn("No token found in localStorage. Available keys:", Object.keys(localStorage));
-      }
-      
-      const res = await fetch(`/api/v1/ngos/${ngoId}`, {
+      const res = await authenticatedFetch(`/api/v1/ngos/${ngoId}`, {
         method: "PUT",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           statusVerification: "APPROVED",
         }),
@@ -248,7 +218,7 @@ export default function NGODetailPage() {
 
     try {
       // Update statusVerification to REJECTED using PUT request
-      const res = await fetch(`/api/v1/ngos/${ngo.id}`, {
+      const res = await authenticatedFetch(`/api/v1/ngos/${ngo.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

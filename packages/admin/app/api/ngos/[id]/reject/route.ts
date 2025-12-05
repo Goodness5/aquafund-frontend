@@ -16,14 +16,21 @@ export async function POST(
     const backendUrl = getBackendUrl();
     const { id } = await params;
 
-    // Forward auth token from request
+    // Forward auth token from request - REQUIRED for this operation
     const authHeader = req.headers.get("authorization");
+    
+    if (!authHeader) {
+      console.error("Reject request missing authorization header");
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      "Authorization": authHeader, // Always include since we validated it exists
     };
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
 
     const res = await fetch(`${backendUrl}/ngos/${id}/reject`, {
       method: "POST",

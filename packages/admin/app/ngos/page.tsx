@@ -101,7 +101,7 @@ export default function NGOPage() {
   const fetchNGOs = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/v1/ngos");
+      const res = await authenticatedFetch("/api/v1/ngos");
       if (res.ok) {
         const data = await res.json();
         // Ensure data is always an array
@@ -184,11 +184,25 @@ export default function NGOPage() {
         setSelectedNGO(null);
       } else {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to update backend");
+        const errorMessage = errorData.error || errorData.message || "Failed to update backend";
+        
+        // Check if it's an authentication error
+        if (res.status === 401 || errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("token")) {
+          toast.error("Authentication required. Please reconnect your wallet and sign in again.");
+          throw new Error("Authentication required");
+        }
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Failed to update backend:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to update backend";
+      
+      // Don't show alert for authentication errors (already shown via toast)
+      if (errorMessage.includes("Authentication required") || errorMessage.includes("Session expired")) {
+        return;
+      }
+      
       alert(`NGO approved on-chain but failed to update backend: ${errorMessage}. Please update manually.`);
     }
   };

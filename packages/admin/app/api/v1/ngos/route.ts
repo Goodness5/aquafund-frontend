@@ -12,11 +12,18 @@ export async function GET(req: NextRequest) {
   try {
     const backendUrl = getBackendUrl();
     
+    // Forward auth token from request if present
+    const authHeader = req.headers.get("authorization");
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+    
     const res = await fetch(`${backendUrl}/ngos`, {
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     if (!res.ok) {

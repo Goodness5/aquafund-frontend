@@ -18,14 +18,21 @@ export async function POST(
     const body = await req.json();
     const { walletAddress, txHash } = body;
 
-    // Forward auth token from request
+    // Forward auth token from request - REQUIRED for this operation
     const authHeader = req.headers.get("authorization");
+    
+    if (!authHeader) {
+      console.error("Approve request missing authorization header");
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const headers: HeadersInit = {
       "Content-Type": "application/json",
+      "Authorization": authHeader, // Always include since we validated it exists
     };
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
 
     // Update NGO status in backend
     const res = await fetch(`${backendUrl}/ngos/${id}/approve`, {

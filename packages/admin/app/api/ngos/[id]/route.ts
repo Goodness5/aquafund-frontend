@@ -21,11 +21,18 @@ export async function GET(
     const endpoint = `${backendUrl}/ngos/${id}`;
     console.log("Calling endpoint:", endpoint);
 
+    // Forward auth token from request if present
+    const authHeader = req.headers.get("authorization");
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     const res = await fetch(endpoint, {
       cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     console.log("Response status:", res.status, res.statusText);
