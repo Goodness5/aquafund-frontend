@@ -85,7 +85,7 @@ function GetStartedPageContent() {
   // Load auth from storage on mount
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+  }, []); // Empty deps - only run once on mount
 
   // Fetch fresh user data from API (including NGO status)
   const fetchUserData = async (userId: string, token: string) => {

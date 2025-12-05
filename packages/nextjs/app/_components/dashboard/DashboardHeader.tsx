@@ -16,6 +16,7 @@ import {
   DocumentTextIcon
 } from "@heroicons/react/24/outline";
 import { useAccount, useDisconnect } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
 interface DashboardHeaderProps {
@@ -138,6 +139,11 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
         {/* Right Icons */}
         <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
+          {/* Connect Wallet Button */}
+          <div className="hidden sm:block">
+            <ConnectButton />
+          </div>
+          
           {/* Notifications Dropdown */}
           <div className="relative" ref={notificationsRef}>
             <button

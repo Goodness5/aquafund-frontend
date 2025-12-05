@@ -64,18 +64,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
   loadFromStorage: () => {
-    // Load from localStorage on mount
+    // Load from localStorage on mount - only if not already loaded
     if (typeof window !== "undefined") {
+      const currentState = get();
+      // Don't reload if already authenticated (prevents clearing on re-renders)
+      if (currentState.isAuthenticated && currentState.token) {
+        return;
+      }
+      
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
           const { user, token, ngo } = JSON.parse(stored);
-          set({
-            user,
-            ngo: ngo || null,
-            token,
-            isAuthenticated: true,
-          });
+          // Only set if we have valid data
+          if (user && token) {
+            set({
+              user,
+              ngo: ngo || null,
+              token,
+              isAuthenticated: true,
+            });
+          }
         } catch (error) {
           console.error("Failed to load auth from storage:", error);
         }

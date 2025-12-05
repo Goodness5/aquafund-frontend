@@ -44,8 +44,9 @@ export default function OverviewPage() {
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Load auth from storage on mount (only once)
     loadFromStorage();
-  }, [loadFromStorage]);
+  }, []); // Empty deps - only run once on mount
 
   // Fetch fresh user data from backend to get current NGO status
   const fetchUserData = async (userId: string, token: string) => {
@@ -188,7 +189,7 @@ export default function OverviewPage() {
             <p className="text-sm lg:text-base text-[#475068]">Overview of your fundraising activities</p>
           </div>
           <Link
-            href="/dashboard/fundraisers/create"
+            href="/fundraiser/create"
             className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2 lg:py-3 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-all duration-300 hover:scale-105 active:scale-95 font-medium text-sm lg:text-base w-full lg:w-auto shadow-md hover:shadow-lg"
           >
             Create Fundraiser

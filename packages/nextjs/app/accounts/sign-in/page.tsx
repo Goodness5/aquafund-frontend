@@ -20,7 +20,7 @@ export default function SignInPage() {
   // Load auth from storage on mount
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+  }, []); // Empty deps - only run once on mount
 
   // Redirect if already authenticated
   useEffect(() => {

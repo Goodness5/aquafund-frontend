@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
+import { useRouter } from "next/navigation";
+import { parseEther, keccak256, stringToBytes } from "viem";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
 import Step1Location from "../_components/Step1Location";
 import Step2ProjectIdentity from "../_components/Step2ProjectIdentity";
 import Step3TellUsMore from "../_components/Step3TellUsMore";
 import Step4FundManagement from "../_components/Step4FundManagement";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth/useScaffoldWriteContract";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth/useScaffoldReadContract";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import { useAuthStore } from "../../../services/store/authStore";
 
 const STORAGE_KEY = "fundraiser-form-progress";
 const TOTAL_STEPS = 4;
@@ -49,8 +55,28 @@ const initialFormData: FundraiserFormData = {
 
 export default function CreateFundraiserPage() {
   const { address } = useAccount();
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { targetNetwork } = useTargetNetwork();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FundraiserFormData>(initialFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { writeContractAsync: writeFactory } = useScaffoldWriteContract({ contractName: "AquaFundFactory" });
+  
+  // Check if user has PROJECT_CREATOR_ROLE
+  const { data: creatorRole } = (useScaffoldReadContract as any)({
+    contractName: "AquaFundFactory",
+    functionName: "PROJECT_CREATOR_ROLE",
+    chainId: targetNetwork.id,
+  } as any);
+  
+  const { data: isCreator } = (useScaffoldReadContract as any)({
+    contractName: "AquaFundFactory",
+    functionName: "hasRole",
+    args: [creatorRole, address],
+    chainId: targetNetwork.id,
+  } as any);
 
   // Load saved progress from localStorage
   useEffect(() => {
@@ -117,12 +143,144 @@ export default function CreateFundraiserPage() {
     }
   };
 
-  const handleSubmit = () => {
-    // TODO: Submit form data to API
-    console.log("Submitting form:", formData);
-    // Clear localStorage after successful submission
-    localStorage.removeItem(STORAGE_KEY);
-    // Redirect to success page or dashboard
+  // Upload images to Cloudinary
+  const uploadImagesToCloudinary = async (images: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (const image of images) {
+      // Validate file size (5MB limit)
+      if (image.size > 5 * 1024 * 1024) {
+        throw new Error(`Image "${image.name}" exceeds 5MB limit. Please compress or resize the image.`);
+      }
+      
+      const formData = new FormData();
+      formData.append("file", image);
+      formData.append("folder", "aquafund/fundraiser-images"); // Specify folder for fundraiser images
+      
+      const response = await fetch("/api/upload/cloudinary", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success || !data.url) {
+        throw new Error(data.error || "Failed to upload image");
+      }
+      
+      uploadedUrls.push(data.url);
+    }
+    
+    return uploadedUrls;
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      // Validate required fields
+      if (!formData.campaignTitle || !formData.goalAmount || !formData.description) {
+        throw new Error("Please fill in all required fields");
+      }
+      
+      if (!address) {
+        throw new Error("Please connect your wallet");
+      }
+      
+      if (!user || !user.id) {
+        throw new Error("Please sign in to create a fundraiser");
+      }
+      
+      // Check if user has PROJECT_CREATOR_ROLE
+      if (isCreator === false) {
+        throw new Error("You don't have permission to create projects. Your wallet address needs to be granted the PROJECT_CREATOR_ROLE. Please contact an administrator.");
+      }
+      
+      if (isCreator === undefined) {
+        throw new Error("Checking permissions... Please wait a moment and try again.");
+      }
+      
+      // Step 1: Upload images to Cloudinary
+      let imageUrls: string[] = [];
+      if (formData.images && formData.images.length > 0) {
+        imageUrls = await uploadImagesToCloudinary(formData.images);
+      }
+      
+      // Step 2: Create metadata URI (use a simple hash of the title + description for now)
+      // In production, you might want to upload to IPFS
+      const metadataString = JSON.stringify({
+        title: formData.campaignTitle,
+        description: formData.description,
+        images: imageUrls,
+        location: formData.location,
+        country: formData.country,
+        category: formData.category,
+      });
+      
+      // Create bytes32 hash of metadata
+      const metadataHash = keccak256(stringToBytes(metadataString)) as `0x${string}`;
+      
+      // Step 3: Convert goal amount to wei
+      const goalAmountWei = parseEther(formData.goalAmount || "0");
+      
+      // Step 4: Call smart contract to create project
+      const txHash = await (writeFactory as any)({
+        functionName: "createProject",
+        args: [
+          address as `0x${string}`, // admin address
+          goalAmountWei, // funding goal in wei
+          metadataHash, // metadata URI as bytes32
+        ],
+      });
+      
+      // Step 5: Wait for transaction receipt to get project address
+      // Note: We'll need to parse the event logs to get the project address
+      // For now, we'll submit to backend with the tx hash
+      
+      // Step 6: Submit project data to backend
+      const projectData = {
+        title: formData.campaignTitle,
+        description: formData.description,
+        images: imageUrls,
+        fundingGoal: parseFloat(formData.goalAmount),
+        creatorId: user.id,
+        location: formData.location,
+        country: formData.country,
+        category: formData.category,
+        preferredToken: formData.preferredToken,
+        walletAddress: formData.walletAddress || address,
+        fundUsage: formData.fundUsage,
+        transactionHash: txHash,
+        metadataHash: metadataHash,
+      };
+      
+      const response = await fetch("/api/v1/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(projectData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to create project" }));
+        throw new Error(errorData.error || "Failed to create project in backend");
+      }
+      
+      // Clear localStorage after successful submission
+      localStorage.removeItem(STORAGE_KEY);
+      
+      // Redirect to dashboard or project page
+      router.push("/dashboard");
+      
+    } catch (error: any) {
+      console.error("Error creating fundraiser:", error);
+      setSubmitError(error.message || "Failed to create fundraiser. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -245,16 +403,28 @@ export default function CreateFundraiserPage() {
           {/* Step Content */}
           <div className="mb-3">{renderStep()}</div>
 
+          {/* Error Message */}
+          {submitError && (
+            <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {submitError}
+            </div>
+          )}
+
           {/* Continue Button */}
           <div className="flex justify-end">
             <Button
               size="lg"
               rounded="full"
               style={{ fontSize: "0.9em", padding: "0.5em 1.2em" }}
-              className="bg-[#0350B5] text-white hover:bg-[#034093] min-w-[100px]"
+              className="bg-[#0350B5] text-white hover:bg-[#034093] min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleNext}
+              disabled={isSubmitting}
             >
-              {currentStep === TOTAL_STEPS ? "Submit" : "Continue"}
+              {isSubmitting 
+                ? "Processing..." 
+                : currentStep === TOTAL_STEPS 
+                ? "Submit" 
+                : "Continue"}
             </Button>
           </div>
         </div>

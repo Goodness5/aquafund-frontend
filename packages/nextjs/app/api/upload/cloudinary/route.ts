@@ -45,13 +45,16 @@ export async function POST(req: NextRequest) {
     // Convert buffer to base64 string for Cloudinary
     const base64String = `data:${file.type};base64,${buffer.toString("base64")}`;
 
+    // Get folder from form data (default to ngo-documents for backward compatibility)
+    const folder = (formData.get("folder") as string) || "aquafund/ngo-documents";
+    
     // Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload(
         base64String,
         {
           resource_type: "auto", // Automatically detect image, video, or raw
-          folder: "aquafund/ngo-documents", // Organize files in a folder
+          folder: folder, // Use specified folder or default
         },
         (error, result) => {
           if (error) {

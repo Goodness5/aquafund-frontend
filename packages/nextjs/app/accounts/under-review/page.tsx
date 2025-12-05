@@ -16,10 +16,10 @@ function AccountUnderReviewContent() {
   const [isChecking, setIsChecking] = useState(true);
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
 
-  // Load auth from storage on mount
+  // Load auth from storage on mount (only once)
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+  }, []); // Empty deps - only run once on mount
 
   // Fetch fresh user data from API (including NGO status)
   const fetchUserData = async (userId: string, token: string) => {

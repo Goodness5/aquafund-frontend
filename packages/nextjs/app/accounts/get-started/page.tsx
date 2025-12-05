@@ -18,7 +18,7 @@ export default function GetStartedPage() {
   // Load auth from storage on mount
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+  }, []); // Empty deps - only run once on mount
 
   // Check authentication status
   useEffect(() => {
