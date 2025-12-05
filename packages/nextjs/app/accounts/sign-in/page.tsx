@@ -26,7 +26,7 @@ export default function SignInPage() {
   useEffect(() => {
     if (typeof window !== "undefined" && isAuthenticated && user) {
       // If user has NGO, go to dashboard, otherwise stay on sign-in (they'll be redirected after login)
-      if (user.ngoId !== null) {
+      if (user.ngoId && user.ngoId !== null && user.ngoId !== "") {
         router.push("/dashboard");
       }
     }
@@ -62,6 +62,8 @@ export default function SignInPage() {
       // Store user data and token in Zustand store
       if (data.success && data.data) {
         const { user: userData, token } = data.data;
+
+        console.log("userData", userData);
         
         // Save to Zustand store
         setAuth(userData, token);
@@ -76,13 +78,13 @@ export default function SignInPage() {
         const returnUrl = new URLSearchParams(window.location.search).get("return");
         if (returnUrl) {
           router.push(returnUrl);
-        } else if (userData.ngos === null) {
-          // User doesn't have NGO, route to NGO setup
+        } else if (!userData.ngoId || userData.ngoId === null || userData.ngoId === "") {
+          // User doesn't have NGO (null, undefined, or empty string), route to NGO setup
           router.push("/ngo/get-started");
         } else {
           // User has NGO, check approval status
           try {
-            const ngoResponse = await fetch(`/api/v1/ngos/${userData.ngos[0].id}`, {
+            const ngoResponse = await fetch(`/api/v1/ngos/${userData.ngoId}`, {
               headers: {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -108,14 +110,15 @@ export default function SignInPage() {
                 router.push("/dashboard");
               }
             } else {
-              // If fetching NGO fails, default to dashboard
-              console.error("Failed to fetch NGO status, defaulting to dashboard");
-              router.push("/dashboard");
+              // If fetching NGO fails (404 or other error), user likely doesn't have a valid NGO
+              // Route to NGO setup instead of dashboard
+              console.error("Failed to fetch NGO status, routing to NGO setup");
+              router.push("/ngo/get-started");
             }
           } catch (error) {
-            // If error fetching NGO, default to dashboard
+            // If error fetching NGO, route to NGO setup instead of dashboard
             console.error("Error checking NGO status:", error);
-            router.push("/dashboard");
+            router.push("/ngo/get-started");
           }
         }
       } else {
