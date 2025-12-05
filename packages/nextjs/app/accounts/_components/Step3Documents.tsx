@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import { NGOAccountData } from "../../ngo/get-started/page";
+import { NGOAccountData } from "../../dashboard/ngo/setup";
 
 interface Step3DocumentsProps {
   formData: NGOAccountData;
@@ -218,7 +218,7 @@ export default function Step3Documents({
     type: ImageType,
     label: string,
     description: string,
-    inputRef: React.RefObject<HTMLInputElement>,
+    inputRef: React.RefObject<HTMLInputElement | null>,
     preview: string | null
   ) => {
     const uploadState = getUploadState(type);

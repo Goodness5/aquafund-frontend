@@ -140,7 +140,7 @@ export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
         {/* Right Icons */}
         <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
           {/* Connect Wallet Button */}
-          <div className="hidden sm:block">
+          <div>
             <ConnectButton />
           </div>
           

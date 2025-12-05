@@ -30,7 +30,7 @@ export default function GetStartedPage() {
           router.push("/dashboard");
         } else {
           // User doesn't have NGO, redirect to NGO setup
-          router.push("/ngo/get-started");
+          router.push("/dashboard/ngo/setup");
         }
       } else {
         // Not authenticated - show account creation modal

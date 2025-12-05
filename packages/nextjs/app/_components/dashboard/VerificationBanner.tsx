@@ -32,7 +32,7 @@ export default function VerificationBanner({ isVerified = false, status }: Verif
           </p>
         </div>
         <button
-          onClick={() => router.push("/ngo/get-started?rejected=true")}
+          onClick={() => router.push("/dashboard/ngo/setup?rejected=true")}
           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
         >
           Update Profile

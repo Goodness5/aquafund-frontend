@@ -160,7 +160,7 @@ export default function OverviewPage() {
                 </div>
               </div>
               <Link
-                href="/ngo/get-started"
+                href="/dashboard/ngo/setup"
                 className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2 lg:py-3 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-all duration-300 font-medium text-sm lg:text-base whitespace-nowrap"
               >
                 Set Up NGO
@@ -189,7 +189,7 @@ export default function OverviewPage() {
             <p className="text-sm lg:text-base text-[#475068]">Overview of your fundraising activities</p>
           </div>
           <Link
-            href="/fundraiser/create"
+            href="/dashboard/fundraisers/create"
             className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2 lg:py-3 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-all duration-300 hover:scale-105 active:scale-95 font-medium text-sm lg:text-base w-full lg:w-auto shadow-md hover:shadow-lg"
           >
             Create Fundraiser

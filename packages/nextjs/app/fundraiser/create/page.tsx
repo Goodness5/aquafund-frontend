@@ -236,44 +236,13 @@ export default function CreateFundraiserPage() {
         ],
       });
       
-      // Step 5: Wait for transaction receipt to get project address
-      // Note: We'll need to parse the event logs to get the project address
-      // For now, we'll submit to backend with the tx hash
-      
-      // Step 6: Submit project data to backend
-      const projectData = {
-        title: formData.campaignTitle,
-        description: formData.description,
-        images: imageUrls,
-        fundingGoal: parseFloat(formData.goalAmount),
-        creatorId: user.id,
-        location: formData.location,
-        country: formData.country,
-        category: formData.category,
-        preferredToken: formData.preferredToken,
-        walletAddress: formData.walletAddress || address,
-        fundUsage: formData.fundUsage,
-        transactionHash: txHash,
-        metadataHash: metadataHash,
-      };
-      
-      const response = await fetch("/api/v1/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(projectData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to create project" }));
-        throw new Error(errorData.error || "Failed to create project in backend");
-      }
+      console.log("Project created successfully! Transaction hash:", txHash);
       
       // Clear localStorage after successful submission
       localStorage.removeItem(STORAGE_KEY);
       
-      // Redirect to dashboard or project page
+      // Show success message and redirect to dashboard
+      alert("Fundraiser created successfully on the blockchain! Transaction: " + txHash);
       router.push("/dashboard");
       
     } catch (error: any) {
@@ -403,6 +372,17 @@ export default function CreateFundraiserPage() {
           {/* Step Content */}
           <div className="mb-3">{renderStep()}</div>
 
+          {/* Role Warning */}
+          {isCreator === false && (
+            <div className="mb-3 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 font-semibold mb-1">Permission Required</p>
+              <p className="text-yellow-700 text-sm">
+                Your wallet address needs to be granted the PROJECT_CREATOR_ROLE to create fundraisers. 
+                Please contact an administrator to get this role assigned to your address: <span className="font-mono text-xs break-all">{address}</span>
+              </p>
+            </div>
+          )}
+          
           {/* Error Message */}
           {submitError && (
             <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">

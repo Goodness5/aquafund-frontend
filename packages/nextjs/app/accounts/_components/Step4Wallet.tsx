@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { NGOAccountData } from "../../ngo/get-started/page";
+import { NGOAccountData } from "../../dashboard/ngo/setup";
 
 interface Step4WalletProps {
   formData: NGOAccountData;

@@ -22,19 +22,19 @@ import {
 const externalContracts = {
 	97: {
 		AquaFundRegistry: {
-			address: "0xc9620e577D0C43B5D09AE8EA406eced818402739",
+			address: "0xf171582a2FaFC0cb8d6436Eae9240920d511998a",
 			abi: AquaFundRegistryAbi,
 		},
 		AquaFundFactory: {
-			address: "0x5ba2d923f8b1E392997D87060E207E1BAAeA3E13",
+			address: "0x85833f870135671465076793337c4F4Ebee50D34",
 			abi: AquaFundFactoryAbi,
 		},
 		AquaFundProject: {
-			address: "0x0000000000000000000000000000000000000000",
+			address: "0xc9620e577D0C43B5D09AE8EA406eced818402739",
 			abi: AquaFundProjectAbi,
 		},
 		AquaFundBadge: {
-			address: "0x55633aFf235600374Ef58D2A5e507Aa39C9e0D37",
+			address: "0x1aF8c0651d1724EDf62410cb0B3C7cD459Ed9d2D",
 			abi: AquaFundBadgeAbi,
 		},
 	},

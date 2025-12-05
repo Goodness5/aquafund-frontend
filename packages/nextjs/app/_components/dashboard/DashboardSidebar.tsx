@@ -10,6 +10,8 @@ import {
   WalletIcon,
   ChartBarIcon,
   Cog6ToothIcon,
+  BuildingOfficeIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
 interface NavItem {
@@ -21,6 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: Squares2X2Icon },
   { label: "Fundraisers", href: "/dashboard/fundraisers", icon: MegaphoneIcon },
+  { label: "NGO Profile", href: "/dashboard/ngo", icon: BuildingOfficeIcon },
   { label: "Donations", href: "/dashboard/donations", icon: GiftIcon },
   { label: "Wallet", href: "/dashboard/wallet", icon: WalletIcon },
   { label: "Reports", href: "/dashboard/reports", icon: ChartBarIcon },

@@ -90,13 +90,13 @@ export default function SignInPage() {
         
         if (!processedNGO || processedNGO === null) {
           // No NGO - redirect to NGO creation
-          router.push("/ngo/get-started");
+          router.push("/dashboard/ngo/setup");
         } else if (ngoStatus === "PENDING") {
           // NGO is pending approval
           router.push("/accounts/under-review");
         } else if (ngoStatus === "REJECTED") {
           // NGO was rejected - redirect to NGO creation to resubmit
-          router.push("/ngo/get-started?rejected=true");
+          router.push("/dashboard/ngo/setup?rejected=true");
         } else if (ngoStatus === "APPROVED") {
           // NGO is approved - go to dashboard
           router.push("/dashboard");
