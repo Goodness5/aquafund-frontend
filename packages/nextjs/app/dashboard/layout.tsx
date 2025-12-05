@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { AuthGuard } from "../_components/AuthGuard";
+import { NGOGuard } from "../_components/NGOGuard";
 import DashboardHeader from "../_components/dashboard/DashboardHeader";
 import DashboardSidebar from "../_components/dashboard/DashboardSidebar";
 import MobileWarningModal from "../_components/dashboard/MobileWarningModal";
@@ -11,7 +12,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen w-full bg-[#F5F5F5] flex flex-col overflow-x-hidden">
+      <NGOGuard requireApproved={true}>
+        <div className="min-h-screen w-full bg-[#F5F5F5] flex flex-col overflow-x-hidden">
         <MobileWarningModal />
         <DashboardHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <div className="flex flex-1 w-full min-w-0 overflow-x-hidden">
@@ -28,6 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           />
         )}
       </div>
+      </NGOGuard>
     </AuthGuard>
   );
 }

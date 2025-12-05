@@ -61,65 +61,48 @@ export default function SignInPage() {
 
       // Store user data and token in Zustand store
       if (data.success && data.data) {
-        const { user: userData, token } = data.data;
-
-        console.log("userData", userData);
+        const { user: userData, token, ngo: ngoData } = data.data;
         
-        // Save to Zustand store
-        setAuth(userData, token);
+        // Map statusVerification to status for consistency if needed
+        let processedNGO = ngoData;
+        if (ngoData && ngoData.statusVerification && !ngoData.status) {
+          processedNGO = { ...ngoData, status: ngoData.statusVerification };
+        }
+        
+        // Save to Zustand store with NGO data
+        setAuth(userData, token, processedNGO || null);
         
         // Also save token to localStorage for backward compatibility
         if (token) {
           localStorage.setItem(AUTH_TOKEN_KEY, token);
         }
 
-        // Check if user has ngoId, if not, route to NGO setup
-        // If ngoId exists, check NGO approval status
+        // Handle redirects based on NGO status
         const returnUrl = new URLSearchParams(window.location.search).get("return");
         if (returnUrl) {
           router.push(returnUrl);
-        } else if (!userData.ngoId || userData.ngoId === null || userData.ngoId === "") {
-          // User doesn't have NGO (null, undefined, or empty string), route to NGO setup
-          router.push("/ngo/get-started");
-        } else {
-          // User has NGO, check approval status
-          try {
-            const ngoResponse = await fetch(`/api/v1/ngos/${userData.ngoId}`, {
-              headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            });
+          return;
+        }
 
-            if (ngoResponse.ok) {
-              const ngoData = await ngoResponse.json();
-              const ngo = ngoData.data || ngoData; // Handle different response formats
-              
-              // Route based on NGO approval status
-              if (ngo.statusVerification === "APPROVED") {
-                // NGO is approved, go to dashboard (can create fundraisers)
-                router.push("/dashboard");
-              } else if (ngo.statusVerification === "PENDING") {
-                // NGO is pending approval, show under review page
-                router.push("/accounts/under-review");
-              } else if (ngo.statusVerification === "REJECTED") {
-                // NGO was rejected, show rejection message
-                router.push("/accounts/under-review?status=rejected");
-              } else {
-                // Unknown status, default to dashboard
-                router.push("/dashboard");
-              }
-            } else {
-              // If fetching NGO fails (404 or other error), user likely doesn't have a valid NGO
-              // Route to NGO setup instead of dashboard
-              console.error("Failed to fetch NGO status, routing to NGO setup");
-              router.push("/ngo/get-started");
-            }
-          } catch (error) {
-            // If error fetching NGO, route to NGO setup instead of dashboard
-            console.error("Error checking NGO status:", error);
-            router.push("/ngo/get-started");
-          }
+        // Check NGO status and redirect accordingly
+        // Handle both status and statusVerification fields
+        const ngoStatus = processedNGO?.status || processedNGO?.statusVerification;
+        
+        if (!processedNGO || processedNGO === null) {
+          // No NGO - redirect to NGO creation
+          router.push("/ngo/get-started");
+        } else if (ngoStatus === "PENDING") {
+          // NGO is pending approval
+          router.push("/accounts/under-review");
+        } else if (ngoStatus === "REJECTED") {
+          // NGO was rejected - redirect to NGO creation to resubmit
+          router.push("/ngo/get-started?rejected=true");
+        } else if (ngoStatus === "APPROVED") {
+          // NGO is approved - go to dashboard
+          router.push("/dashboard");
+        } else {
+          // Unknown status - default to dashboard
+          router.push("/dashboard");
         }
       } else {
         throw new Error("Invalid response from server");

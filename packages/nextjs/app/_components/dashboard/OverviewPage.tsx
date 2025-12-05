@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRightIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
@@ -34,20 +34,111 @@ const TableSkeleton = () => (
   </div>
 );
 
+const AUTH_TOKEN_KEY = "access_token";
+
 export default function OverviewPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loadFromStorage } = useAuthStore();
+  const { user, ngo, isAuthenticated, loadFromStorage, setAuth, getNGOStatus } = useAuthStore();
   const [hasNgo, setHasNgo] = useState<boolean | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setHasNgo(user.ngoId !== null);
+  // Fetch fresh user data from backend to get current NGO status
+  const fetchUserData = async (userId: string, token: string) => {
+    try {
+      const response = await fetch(`/api/v1/users/${userId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const userData = data.data;
+          const ngoData = userData.ngo || null;
+          
+          // Map statusVerification to status for consistency
+          if (ngoData && ngoData.statusVerification) {
+            ngoData.status = ngoData.statusVerification;
+          }
+          
+          // Update auth store with fresh user data and NGO
+          setAuth(userData, token, ngoData);
+          return { user: userData, ngo: ngoData };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+      return null;
     }
-  }, [isAuthenticated, user]);
+  };
+
+  // Fetch fresh data on mount (only once)
+  useEffect(() => {
+    // Prevent multiple fetches
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
+    let isMounted = true;
+
+    const loadFreshData = async () => {
+      // Wait for auth to load
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const authState = useAuthStore.getState();
+      const currentUser = authState.user;
+      const currentIsAuthenticated = authState.isAuthenticated;
+      const currentNgo = authState.ngo;
+
+      if (!currentIsAuthenticated || !currentUser) {
+        if (isMounted) setIsLoadingStatus(false);
+        return;
+      }
+
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) {
+        if (isMounted) {
+          setHasNgo(!!currentNgo);
+          setIsLoadingStatus(false);
+        }
+        return;
+      }
+
+      if (isMounted) setIsLoadingStatus(true);
+      const freshData = await fetchUserData(currentUser.id, token);
+      
+      if (isMounted) {
+        if (freshData) {
+          setHasNgo(!!freshData.ngo);
+        } else {
+          // Fallback to stored data
+          setHasNgo(!!currentNgo);
+        }
+        setIsLoadingStatus(false);
+      }
+    };
+
+    loadFreshData();
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Get current NGO status
+  const ngoStatus = getNGOStatus();
+  const isVerified = ngoStatus === "APPROVED";
+  const isPending = ngoStatus === "PENDING";
+  const isRejected = ngoStatus === "REJECTED";
 
   return (
     <div className="w-full max-w-full min-w-0">
@@ -79,10 +170,15 @@ export default function OverviewPage() {
         </FadeInSection>
       )}
 
-      {/* Verification Banner */}
-      <FadeInSection delay={hasNgo === false ? 100 : 0}>
-        <VerificationBanner isVerified={false} />
-      </FadeInSection>
+      {/* Verification Banner - Only show if PENDING or REJECTED */}
+      {!isLoadingStatus && (isPending || isRejected) && (
+        <FadeInSection delay={hasNgo === false ? 100 : 0}>
+          <VerificationBanner 
+            isVerified={isVerified} 
+            status={(ngoStatus as "PENDING" | "APPROVED" | "REJECTED") || "PENDING"}
+          />
+        </FadeInSection>
+      )}
 
       {/* Header Section */}
       <FadeInSection delay={hasNgo === false ? 200 : 100}>

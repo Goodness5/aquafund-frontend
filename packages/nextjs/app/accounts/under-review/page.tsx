@@ -1,14 +1,132 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircleIcon, ArrowRightIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
+import { useAuthStore } from "../../../services/store/authStore";
+
+const AUTH_TOKEN_KEY = "access_token";
 
 function AccountUnderReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectTitle = searchParams.get("project");
+  const { user, isAuthenticated, loadFromStorage, setAuth } = useAuthStore();
+  const [isChecking, setIsChecking] = useState(true);
+  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
+
+  // Load auth from storage on mount
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  // Fetch fresh user data from API (including NGO status)
+  const fetchUserData = async (userId: string, token: string) => {
+    try {
+      const response = await fetch(`/api/v1/users/${userId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Handle response format: { success: true, data: { id, email, ..., ngo: {...} } }
+        // NGO is nested inside the user data object
+        if (data.success && data.data) {
+          const userData = data.data;
+          const ngoData = userData.ngo || null;
+          
+          // Map statusVerification to status for consistency
+          if (ngoData && ngoData.statusVerification) {
+            ngoData.status = ngoData.statusVerification;
+          }
+          
+          // Update auth store with fresh user data and NGO
+          setAuth(userData, token, ngoData);
+          return { user: userData, ngo: ngoData };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+      return null;
+    }
+  };
+
+  // Check NGO status on mount and periodically
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const checkNGOStatus = async () => {
+      // Wait for auth to load
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const authState = useAuthStore.getState();
+      const currentUser = authState.user;
+      const currentIsAuthenticated = authState.isAuthenticated;
+
+      if (!currentIsAuthenticated || !currentUser || !token) {
+        router.push("/accounts/sign-in?return=" + encodeURIComponent("/accounts/under-review"));
+        setIsChecking(false);
+        return;
+      }
+
+      setIsChecking(true);
+      console.log("Fetching user data for status check...");
+
+      // Fetch fresh data from backend
+      const freshData = await fetchUserData(currentUser.id, token);
+
+      if (freshData) {
+        const { ngo: freshNGO } = freshData;
+        console.log("Fresh NGO data:", freshNGO);
+        
+        // Check NGO status with fresh data from backend
+        // Handle both statusVerification (from backend) and status (mapped)
+        const ngoStatus = freshNGO?.status || freshNGO?.statusVerification;
+        console.log("NGO Status:", ngoStatus);
+
+        if (ngoStatus === "APPROVED") {
+          // NGO has been approved - redirect to dashboard
+          console.log("NGO approved, redirecting to dashboard");
+          router.replace("/dashboard");
+          return;
+        } else if (ngoStatus === "REJECTED") {
+          // NGO was rejected - redirect to NGO creation to resubmit
+          console.log("NGO rejected, redirecting to NGO creation");
+          router.replace("/ngo/get-started?rejected=true");
+          return;
+        } else if (!freshNGO || freshNGO === null) {
+          // No NGO - redirect to creation
+          console.log("No NGO found, redirecting to NGO creation");
+          router.replace("/ngo/get-started");
+          return;
+        }
+        // If still PENDING, stay on this page
+        console.log("NGO still pending, staying on page");
+      } else {
+        console.log("Failed to fetch fresh data");
+      }
+
+      setIsChecking(false);
+      setHasCheckedStatus(true);
+    };
+
+    // Run check immediately on mount
+    checkNGOStatus();
+
+    // Set up periodic check every 30 seconds to see if status changed
+    const interval = setInterval(() => {
+      checkNGOStatus();
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [router, setAuth]);
 
   const handleGoToDashboard = () => {
     router.push("/dashboard");
@@ -21,6 +139,15 @@ function AccountUnderReviewContent() {
       router.push("/fundraiser/create");
     }
   };
+
+  // Show loading while checking status
+  if (isChecking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#1BCBEE33] via-[#00bf3c18] to-[#CFFED914] flex items-center justify-center p-4">
+        <div className="text-[#475068]">Checking status...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1BCBEE33] via-[#00bf3c18] to-[#CFFED914] flex items-center justify-center p-4">

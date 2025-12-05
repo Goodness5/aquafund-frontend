@@ -222,10 +222,16 @@ export default function SetPasswordModal({
 
       // Store user data and token in Zustand store
       if (data.success && data.data) {
-        const { user, token } = data.data;
+        const { user, token, ngo: ngoData } = data.data;
         
-        // Save to Zustand store
-        setAuth(user, token);
+        // Map statusVerification to status for consistency if needed
+        let processedNGO = ngoData;
+        if (ngoData && ngoData.statusVerification && !ngoData.status) {
+          processedNGO = { ...ngoData, status: ngoData.statusVerification };
+        }
+        
+        // Save to Zustand store with NGO data
+        setAuth(user, token, processedNGO || null);
         
         // Also save token to localStorage for backward compatibility
         if (token) {
@@ -235,19 +241,31 @@ export default function SetPasswordModal({
         setSuccessMessage("Login successful!");
         setCurrentStep("success");
         
-        // Check if user has ngoId, if not, route to NGO setup (with option to skip)
-        // If ngoId exists, route to dashboard
+        // Handle redirects based on NGO status
+        // Handle both status and statusVerification fields
+        const ngoStatus = processedNGO?.status || processedNGO?.statusVerification;
+        
         setTimeout(() => {
-          if (user.ngoId === null) {
-            // Route to NGO setup page
+          if (!processedNGO || processedNGO === null) {
+            // No NGO - redirect to NGO creation
             router.push("/ngo/get-started");
-            // Call onPasswordSet if provided (for backward compatibility)
-            if (onPasswordSet) {
-              onPasswordSet();
-            }
-          } else {
-            // User already has NGO, route to dashboard
+          } else if (ngoStatus === "PENDING") {
+            // NGO is pending approval
+            router.push("/accounts/under-review");
+          } else if (ngoStatus === "REJECTED") {
+            // NGO was rejected - redirect to NGO creation to resubmit
+            router.push("/ngo/get-started?rejected=true");
+          } else if (ngoStatus === "APPROVED") {
+            // NGO is approved - go to dashboard
             router.push("/dashboard");
+          } else {
+            // Unknown status - default to dashboard
+            router.push("/dashboard");
+          }
+          
+          // Call onPasswordSet if provided (for backward compatibility)
+          if (onPasswordSet) {
+            onPasswordSet();
           }
         }, 1500);
       } else {

@@ -1,5 +1,12 @@
 import { create } from "zustand";
 
+export interface NGO {
+  id: string;
+  organizationName: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  [key: string]: any;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -8,30 +15,37 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   ngoId: string | null;
+  walletAddress?: string | null;
 }
 
 interface AuthState {
   user: User | null;
+  ngo: NGO | null;
   token: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, ngo?: NGO | null) => void;
   clearAuth: () => void;
   loadFromStorage: () => void;
+  hasApprovedNGO: () => boolean;
+  hasNGO: () => boolean;
+  getNGOStatus: () => string | null;
 }
 
 const STORAGE_KEY = "auth-storage";
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  ngo: null,
   token: null,
   isAuthenticated: false,
-  setAuth: (user: User, token: string) => {
+  setAuth: (user: User, token: string, ngo?: NGO | null) => {
     // Save to localStorage
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, token, ngo: ngo || null }));
     }
     set({
       user,
+      ngo: ngo || null,
       token,
       isAuthenticated: true,
     });
@@ -44,6 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({
       user: null,
+      ngo: null,
       token: null,
       isAuthenticated: false,
     });
@@ -54,9 +69,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
-          const { user, token } = JSON.parse(stored);
+          const { user, token, ngo } = JSON.parse(stored);
           set({
             user,
+            ngo: ngo || null,
             token,
             isAuthenticated: true,
           });
@@ -65,6 +81,20 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       }
     }
+  },
+  hasApprovedNGO: () => {
+    const state = get();
+    const status = state.ngo?.status || state.ngo?.statusVerification;
+    return !!(state.ngo && status === "APPROVED");
+  },
+  hasNGO: () => {
+    const state = get();
+    return !!state.ngo;
+  },
+  getNGOStatus: () => {
+    const state = get();
+    if (!state.ngo) return null;
+    return state.ngo.status || state.ngo.statusVerification || null;
   },
 }));
 

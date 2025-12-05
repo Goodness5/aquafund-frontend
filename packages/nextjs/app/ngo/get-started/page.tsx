@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useAccount } from "wagmi";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChevronLeftIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { ChevronLeftIcon, CheckCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
 import Step1Organization from "../../accounts/_components/Step1Organization";
 import Step2ContactInfo from "../../accounts/_components/Step2ContactInfo";
@@ -71,7 +71,7 @@ function GetStartedPageContent() {
   const { address } = useAccount();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, isAuthenticated, loadFromStorage } = useAuthStore();
+  const { user, ngo, isAuthenticated, loadFromStorage, hasApprovedNGO } = useAuthStore();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<NGOAccountData>(initialFormData);
@@ -87,7 +87,7 @@ function GetStartedPageContent() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  // Fetch fresh user data from API
+  // Fetch fresh user data from API (including NGO status)
   const fetchUserData = async (userId: string, token: string) => {
     try {
       setIsCheckingUser(true);
@@ -101,12 +101,21 @@ function GetStartedPageContent() {
 
       if (response.ok) {
         const data = await response.json();
+        // Handle response format: { success: true, data: { id, email, ..., ngo: {...} } }
+        // NGO is nested inside the user data object
         if (data.success && data.data) {
           const userData = data.data;
-          // Update auth store with fresh user data
+          const ngoData = userData.ngo || null;
+          
+          // Map statusVerification to status for consistency
+          if (ngoData && ngoData.statusVerification) {
+            ngoData.status = ngoData.statusVerification;
+          }
+          
+          // Update auth store with fresh user data and NGO
           const { setAuth } = useAuthStore.getState();
-          setAuth(userData, token);
-          return userData;
+          setAuth(userData, token, ngoData);
+          return { user: userData, ngo: ngoData };
         }
       }
       return null;
@@ -172,32 +181,39 @@ function GetStartedPageContent() {
           return;
         }
 
-        // User is authenticated, check ngoId
-        // Fetch fresh user data to check current ngoId status
-        const freshUserData = await fetchUserData(currentUser.id, token);
+        // User is authenticated - ALWAYS refetch from backend to get latest NGO status
+        // This ensures we have the most up-to-date information
+        const freshData = await fetchUserData(currentUser.id, token);
         
-        if (freshUserData) {
-          // If user has NGO, redirect to dashboard
-          if (freshUserData.ngoId !== null) {
-            router.push("/dashboard");
+        if (freshData) {
+          const { user: freshUser, ngo: freshNGO } = freshData;
+          
+          // Check NGO status with fresh data from backend
+          // Handle both statusVerification (from backend) and status (mapped)
+          const ngoStatus = freshNGO?.status || freshNGO?.statusVerification;
+          
+          if (ngoStatus === "APPROVED") {
+            // User has approved NGO, redirect to dashboard
+            setHasCheckedUser(true);
+            router.replace("/dashboard");
+            return;
+          } else if (ngoStatus === "PENDING") {
+            // NGO is pending, redirect to under review
+            setHasCheckedUser(true);
+            router.replace("/accounts/under-review");
+            return;
+          } else if (ngoStatus === "REJECTED") {
+            // NGO was rejected, stay on page to allow resubmission
+            setShowSkipOption(true);
+            isFormActive.current = true;
             setHasCheckedUser(true);
             return;
-          } else {
-            // User doesn't have NGO, show form with skip option
-            setShowSkipOption(true);
-            isFormActive.current = true; // Mark form as active
-          }
-        } else {
-          // If fetch fails, use stored user data
-          if (currentUser.ngoId !== null) {
-            router.push("/dashboard");
-            setHasCheckedUser(true);
-            return;
-          } else {
-            setShowSkipOption(true);
-            isFormActive.current = true; // Mark form as active
           }
         }
+        
+        // No NGO or unknown status - show form to create/update NGO
+        setShowSkipOption(true);
+        isFormActive.current = true; // Mark form as active
         setHasCheckedUser(true);
       };
 
@@ -212,13 +228,15 @@ function GetStartedPageContent() {
     }
   }, [showSkipOption]);
 
-  // Check if coming from project creation
+  // Check if coming from project creation or rejection
   useEffect(() => {
     const projectTitleParam = searchParams.get("project");
     if (projectTitleParam) {
       setProjectTitle(decodeURIComponent(projectTitleParam));
     }
   }, [searchParams]);
+
+  const isRejected = searchParams.get("rejected") === "true";
 
   // Auto-fill wallet address when connected
   useEffect(() => {
@@ -381,8 +399,18 @@ function GetStartedPageContent() {
   };
 
   const handleSkipNgoSetup = () => {
-    // Skip NGO setup and go to dashboard
-    router.push("/dashboard");
+    // Skip NGO setup - check NGO status first
+    const authState = useAuthStore.getState();
+    const currentNGO = authState.ngo;
+    
+    if (currentNGO && currentNGO.status === "APPROVED") {
+      router.push("/dashboard");
+    } else if (currentNGO && currentNGO.status === "PENDING") {
+      router.push("/accounts/under-review");
+    } else {
+      // No NGO or rejected - stay on page or go to dashboard (they'll be redirected back by NGOGuard)
+      router.push("/dashboard");
+    }
   };
 
   const handleSubmit = async () => {
@@ -527,19 +555,8 @@ function GetStartedPageContent() {
       // Clear saved progress
       localStorage.removeItem(STORAGE_KEY);
       
-      // Refresh user data to get updated ngoId
-      if (user && token) {
-        const freshUserData = await fetchUserData(user.id, token);
-        if (freshUserData) {
-          // User now has NGO, redirect to dashboard
-          router.push("/dashboard");
-        } else {
-          // Redirect to account under review page
-          router.push("/accounts/under-review");
-        }
-      } else {
-        router.push("/accounts/under-review");
-      }
+      // After submitting, NGO will be PENDING, so always redirect to under-review
+      router.push("/accounts/under-review");
     } catch (error) {
       console.error("Failed to submit:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to submit NGO profile. Please try again.";
@@ -659,6 +676,21 @@ function GetStartedPageContent() {
               </div>
             )}
           </div>
+
+          {/* Rejection Banner */}
+          {isRejected && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <ExclamationTriangleIcon className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-red-900 mb-1">NGO Profile Rejected</h3>
+                  <p className="text-sm text-red-700">
+                    Your previous NGO profile submission was rejected. Please review and update your information before resubmitting.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Progress Bar */}
           <div className="mb-3">

@@ -15,6 +15,8 @@ export async function GET(
   try {
     const backendUrl = getBackendUrl();
     const { id } = await params;
+    console.log("THIS IS THE ID: ", id);
+    console.log("THIS IS THE BACKEND URL: ", backendUrl);
 
     if (!id) {
       return NextResponse.json(
@@ -24,13 +26,13 @@ export async function GET(
     }
 
     // Get authorization header if present
-    const authHeader = req.headers.get("authorization");
+    // const authHeader = req.headers.get("authorization");
     const headers: HeadersInit = {};
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
+    // if (authHeader) {
+    //   headers["Authorization"] = authHeader;
+    // }
 
-    const res = await fetch(`${backendUrl}/api/v1/users/${id}`, {
+    const res = await fetch(`${backendUrl}/users/${id}`, {
       method: "GET",
       headers,
     });
