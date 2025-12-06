@@ -1,12 +1,113 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
+import { formatEther } from "viem";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../_components/Button";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth/useScaffoldReadContract";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import { ProjectCard } from "../../_components/ProjectCard";
+
+interface Fundraiser {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  raised: number;
+  goal: number;
+  donations: number;
+}
 
 export default function FundraisersPage() {
-  const [fundraisers, setFundraisers] = useState<any[]>([]);
+  const { address } = useAccount();
+  const { targetNetwork } = useTargetNetwork();
+  const [fundraisers, setFundraisers] = useState<Fundraiser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Get all project IDs from registry
+  const { data: allProjectIds, isLoading: isLoadingIds, error: projectIdsError } = (useScaffoldReadContract as any)({
+    contractName: "AquaFundRegistry",
+    functionName: "getAllProjectIds",
+    chainId: targetNetwork.id,
+  } as any);
+
+  // Fetch and filter projects by creator address
+  useEffect(() => {
+    const fetchUserProjects = async () => {
+      if (isLoadingIds || !address) {
+        return;
+      }
+
+      if (projectIdsError) {
+        console.error("Error fetching project IDs:", projectIdsError);
+        setLoading(false);
+        return;
+      }
+
+      if (!allProjectIds || !Array.isArray(allProjectIds) || allProjectIds.length === 0) {
+        setFundraisers([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        // Fetch project details for each project ID using API route
+        const projectPromises = (allProjectIds as bigint[]).map(async (projectId) => {
+          try {
+            const response = await fetch(`/api/projects/details?projectId=${projectId.toString()}`, {
+              method: "GET",
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              return {
+                projectId: Number(projectId),
+                details: data,
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error(`Failed to fetch project ${projectId}:`, error);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(projectPromises);
+        const validResults = results.filter((r) => r !== null);
+
+        // Filter projects where admin matches user's address
+        const userProjects = validResults
+          .filter((result) => {
+            const admin = result?.details?.info?.admin || result?.details?.admin;
+            return admin && admin.toLowerCase() === address.toLowerCase();
+          })
+          .map((result) => {
+            const info = result?.details?.info || result?.details;
+            return {
+              id: result!.projectId,
+              title: `Project #${result!.projectId}`,
+              description: `Blockchain Project ID: ${result!.projectId}`,
+              image: "/Home.png",
+              raised: Number(formatEther(info?.fundsRaised || BigInt(0))),
+              goal: Number(formatEther(info?.fundingGoal || BigInt(0))),
+              donations: 0, // Can be fetched separately if needed
+            };
+          });
+
+        setFundraisers(userProjects);
+      } catch (error) {
+        console.error("Failed to fetch user projects:", error);
+        setFundraisers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProjects();
+  }, [allProjectIds, isLoadingIds, projectIdsError, address]);
 
   return (
     <div className="w-full max-w-full min-w-0">
@@ -27,7 +128,11 @@ export default function FundraisersPage() {
         </Link>
       </div>
 
-      {fundraisers.length === 0 ? (
+      {loading ? (
+        <div className="bg-white rounded-xl p-12 text-center">
+          <p className="text-[#475068] text-lg">Loading your fundraisers...</p>
+        </div>
+      ) : fundraisers.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center">
           <p className="text-[#475068] text-lg mb-4">You haven't created any fundraisers yet.</p>
           <Link href="/dashboard/fundraisers/create">
@@ -42,7 +147,11 @@ export default function FundraisersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Fundraiser cards will go here */}
+          {fundraisers.map((fundraiser) => (
+            <Link key={fundraiser.id} href={`/projects/${fundraiser.id}`} className="group block">
+              <ProjectCard variant="light" project={fundraiser} />
+            </Link>
+          ))}
         </div>
       )}
     </div>
