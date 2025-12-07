@@ -26,7 +26,7 @@ const externalContracts = {
 			abi: AquaFundRegistryAbi,
 		},
 		AquaFundFactory: {
-			address: "0x85833f870135671465076793337c4F4Ebee50D34",
+			address: "0x485B3c7C328bb9b62C1e5ce2906BC9Be7d589280",
 			abi: AquaFundFactoryAbi,
 		},
 		AquaFundProject: {
