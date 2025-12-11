@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createProjectUrl } from "~~/utils/slug";
 
@@ -41,7 +42,15 @@ export function ProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-export function DonateButton({ projectId, variant = "dark" }: { projectId: number; variant?: "dark" | "light" }) {
+export function DonateButton({ 
+  projectId, 
+  variant = "dark",
+  onClick 
+}: { 
+  projectId: number; 
+  variant?: "dark" | "light";
+  onClick?: () => void;
+}) {
   const router = useRouter();
   const buttonColor = variant === "light" ? "#0350B5" : "#E1FFFF";
   const iconSrc = variant === "light" ? "/donate-blue.svg" : "/bx_donate-heart.svg";
@@ -50,8 +59,12 @@ export function DonateButton({ projectId, variant = "dark" }: { projectId: numbe
     <button
       onClick={e => {
         e.stopPropagation();
-        // For now, use ID only - the redirect page will handle slug generation
-        router.push(`/projects/${projectId}`);
+        if (onClick) {
+          onClick();
+        } else {
+          // Fallback to navigation if no onClick handler
+          router.push(`/projects/${projectId}`);
+        }
       }}
       className="flex items-center gap-1 mt-2 text-[1em] font-semibold hover:opacity-80 transition-opacity cursor-pointer"
       style={{ color: buttonColor, background: "transparent", border: "none" }}
@@ -73,9 +86,10 @@ interface ProjectCardProps {
   variant?: "dark" | "light";
   className?: string;
   style?: React.CSSProperties;
+  onDonateClick?: () => void;
 }
 
-export function ProjectCard({ project, variant = "dark", className = "", style }: ProjectCardProps) {
+export function ProjectCard({ project, variant = "dark", className = "", style, onDonateClick }: ProjectCardProps) {
   const isLight = variant === "light";
   const cardBg = isLight ? "bg-transparent" : "bg-[#001627]";
   const textColor = isLight ? "text-[#001627]" : "text-white";
@@ -86,22 +100,30 @@ export function ProjectCard({ project, variant = "dark", className = "", style }
       style={style}
       tabIndex={-1}
     >
-      <div className="relative h-40 overflow-hidden">
-        <Image src={project.image} alt={project.title} fill style={{ objectFit: "cover", background: "#11212b" }} />
-        <DonorTag donations={project.donations} />
-      </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="font-semibold text-base line-clamp-2 min-h-[2.4em]">{project.title}</h3>
-        <ProgressBar value={project.raised} max={project.goal} />
-        <div className="flex justify-between items-end mt-2">
-          <div>
-            <span className="font-bold">${project.raised.toLocaleString()}</span>
-            <span className="text-xs opacity-80 font-normal ml-1">out of ${project.goal.toLocaleString()}</span>
+      <Link href={createProjectUrl(project.id, project.title)} className="block">
+        <div className="relative h-40 overflow-hidden">
+          <Image 
+            src={project.image} 
+            alt={project.title} 
+            fill 
+            style={{ objectFit: "cover", background: "#11212b" }}
+            unoptimized
+          />
+          <DonorTag donations={project.donations} />
+        </div>
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <h3 className="font-semibold text-base line-clamp-2 min-h-[2.4em]">{project.title}</h3>
+          <ProgressBar value={project.raised} max={project.goal} />
+          <div className="flex justify-between items-end mt-2">
+            <div>
+              <span className="font-bold">${project.raised.toLocaleString()}</span>
+              <span className="text-xs opacity-80 font-normal ml-1">out of ${project.goal.toLocaleString()}</span>
+            </div>
           </div>
         </div>
-        <div className="mt-3">
-          <DonateButton projectId={project.id} variant={variant} />
-        </div>
+      </Link>
+      <div className="px-4 pb-4">
+        <DonateButton projectId={project.id} variant={variant} onClick={onDonateClick} />
       </div>
     </div>
   );

@@ -7,9 +7,13 @@ import { formatEther } from "viem";
 import ProjectsHero from "../_components/ProjectsHero";
 import { ProjectCard } from "../_components/ProjectCard";
 import FundraisingBenefits from "../_components/fundraising/FundraisingBenefits";
+import DonationModal from "../_components/DonationModal";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth/useScaffoldReadContract";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth/useScaffoldWriteContract";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import { useProjectData } from "~~/contexts/ProjectDataContext";
+import { parseEther } from "viem";
 
 interface Project {
   id: number;
@@ -19,16 +23,25 @@ interface Project {
   raised: number;
   goal: number;
   description: string;
+  projectAddress?: string;
+  organizerName?: string;
 }
 
 export default function ProjectsPage() {
   const { targetNetwork } = useTargetNetwork();
+  const { fetchProject } = useProjectData();
+  const { writeContractAsync: writeProject } = useScaffoldWriteContract({ contractName: "AquaFundProject" });
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string>("All Countries");
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [donationModal, setDonationModal] = useState<{ isOpen: boolean; project: Project | null }>({
+    isOpen: false,
+    project: null,
+  });
+  const [donating, setDonating] = useState(false);
 
   // Get all project IDs from registry
   const { data: allProjectIds, isLoading: isLoadingIds, error: projectIdsError } = (useScaffoldReadContract as any)({
@@ -80,33 +93,78 @@ export default function ProjectsPage() {
       return;
     }
 
-    // Fetch project details for each project ID
+    // Fetch project details for each project ID - Step by step: ID -> Address -> Details
     const fetchProjectDetails = async () => {
       try {
+        setLoading(true);
+        console.log("🔄 [Projects] Starting to fetch project details...");
+        
         const projectPromises = (allProjectIds as bigint[]).slice(0, 50).map(async (projectId) => {
           try {
-            // Use useScaffoldReadContract for each project (we'll need to batch this differently)
-            // For now, create basic project objects from IDs
+            const projectIdStr = projectId.toString();
+            console.log(`📋 [Projects] Fetching project ${projectIdStr}...`);
+            
+            // Step 1: Get project address from Factory
+            const addressResponse = await fetch(`/api/projects/address?projectId=${projectIdStr}`);
+            if (!addressResponse.ok) {
+              console.warn(`⚠️ [Projects] Failed to get address for project ${projectIdStr}`);
+              return null;
+            }
+            const addressData = await addressResponse.json();
+            const projectAddress = addressData.address;
+            
+            if (!projectAddress || projectAddress === "0x0000000000000000000000000000000000000000") {
+              console.warn(`⚠️ [Projects] Invalid address for project ${projectIdStr}`);
+              return null;
+            }
+            
+            console.log(`✅ [Projects] Got address for project ${projectIdStr}: ${projectAddress}`);
+            
+            // Step 2: Get full project details using ID and Address
+            const detailsResponse = await fetch(
+              `/api/projects/details?projectId=${projectIdStr}&projectAddress=${projectAddress}`
+            );
+            if (!detailsResponse.ok) {
+              console.warn(`⚠️ [Projects] Failed to get details for project ${projectIdStr}`);
+              return null;
+            }
+            
+            const detailsData = await detailsResponse.json();
+            const info = detailsData.info;
+            
+            console.log(`✅ [Projects] Got details for project ${projectIdStr}:`, {
+              title: info.title,
+              hasImages: info.images?.length > 0,
+              raised: info.fundsRaised,
+              goal: info.fundingGoal,
+            });
+            
+            // Step 3: Build project object with real data
             return {
               id: Number(projectId),
-              title: `Project #${projectId}`,
-              donations: 0, // Can be fetched from contract if needed
-              image: "/Home.png", // Default image, can be enhanced with metadata
-              raised: 0, // Will be fetched from contract
-              goal: 0, // Will be fetched from contract
-              description: `Blockchain Project ID: ${projectId}`,
+              title: info.title && info.title !== "N/A" ? info.title : `Project #${projectIdStr}`,
+              donations: detailsData.donationCount || 0,
+              image: info.images && info.images.length > 0 ? info.images[0] : "/Home.png",
+              raised: Number(formatEther(BigInt(info.fundsRaised || "0"))),
+              goal: Number(formatEther(BigInt(info.fundingGoal || "0"))),
+              description: info.description && info.description !== "N/A" ? info.description : `Project ${projectIdStr}`,
+              projectAddress: projectAddress,
+              organizerName: info.creator || info.admin,
             };
           } catch (error) {
-            console.error(`Failed to fetch project ${projectId}:`, error);
+            console.error(`❌ [Projects] Failed to fetch project ${projectId}:`, error);
             return null;
           }
         });
 
         const results = await Promise.all(projectPromises);
         const validProjects = results.filter((p) => p !== null) as Project[];
+        
+        console.log(`✅ [Projects] Successfully fetched ${validProjects.length} projects`);
+        console.log(`📊 [Projects] Sample project data:`, validProjects[0]);
         setProjects(validProjects);
       } catch (error) {
-        console.error("Failed to fetch projects:", error);
+        console.error("❌ [Projects] Failed to fetch projects:", error);
         setProjects([]);
       } finally {
         setLoading(false);
@@ -151,6 +209,41 @@ export default function ProjectsPage() {
   React.useEffect(() => {
     setVisibleCount(8);
   }, [searchQuery, selectedCountry]);
+
+  const handleDonateContinue = async (amount: string, token: string, aquafundTip: number) => {
+    if (!donationModal.project?.projectAddress) {
+      console.error("Project address not available");
+      alert("Unable to donate: Project address not found");
+      return;
+    }
+    
+    setDonating(true);
+    try {
+      // For now, only handle BNB donations (native token)
+      if (token !== "BNB") {
+        alert(`${token} donations coming soon! For now, please use BNB.`);
+        setDonating(false);
+        return;
+      }
+
+      // The wallet extension will handle the transaction signing
+      await (writeProject as any)({
+        address: donationModal.project.projectAddress as `0x${string}`,
+        functionName: "donate",
+        args: [], // donate() takes no parameters - it's just payable
+        value: parseEther(amount || "0"),
+      });
+      
+      setDonationModal({ isOpen: false, project: null });
+      // Refresh projects list
+      // You could refetch here if needed
+    } catch (error) {
+      console.error("Donation failed:", error);
+      // Don't close modal on error - let user retry
+    } finally {
+      setDonating(false);
+    }
+  };
 
   return (
     <div className="">
@@ -229,9 +322,12 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2  lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {displayedProjects.length > 0 ? (
             displayedProjects.map((project) => (
-              <Link key={project.id} href={`/projects/${project.id}`} className="group block">
-                <ProjectCard variant="light" project={project} />
-              </Link>
+              <ProjectCard
+                key={project.id}
+                variant="light"
+                project={project}
+                onDonateClick={() => setDonationModal({ isOpen: true, project })}
+              />
             ))
           ) : (
             <div className="col-span-full text-center py-12">
@@ -254,6 +350,18 @@ export default function ProjectsPage() {
       <div className="px-10">
       <FundraisingBenefits />
       </div>
+
+      {/* Donation Modal */}
+      {donationModal.project && (
+        <DonationModal
+          isOpen={donationModal.isOpen}
+          onClose={() => setDonationModal({ isOpen: false, project: null })}
+          projectTitle={donationModal.project.title}
+          organizerName={donationModal.project.organizerName || "Organizer"}
+          projectImage={donationModal.project.image}
+          onContinue={handleDonateContinue}
+        />
+      )}
     </div>
   );
 }

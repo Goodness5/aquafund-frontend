@@ -344,54 +344,14 @@ export default function ProjectDetail() {
       </div>
 
       {/* Donation Modal */}
-      {showDonateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-base-100 rounded-xl p-6 max-w-md w-full space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Make a Donation</h2>
-              <button
-                onClick={() => setShowDonateModal(false)}
-                className="btn btn-ghost btn-sm btn-circle"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="label">
-                  <span className="label-text">Amount (BNB)</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  className="input input-bordered w-full"
-                  placeholder="0.1"
-                  value={donation}
-                  onChange={(e) => setDonation(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDonateModal(false)}
-                  className="btn btn-outline flex-1"
-                  disabled={donating}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDonate}
-                  className="btn btn-primary flex-1 gap-2"
-                  disabled={donating || !donation || parseFloat(donation) <= 0}
-                >
-                  {donating ? "Processing..." : "Donate"}
-                  {!donating && <ArrowUpRightIcon className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DonationModal
+        isOpen={showDonateModal}
+        onClose={() => setShowDonateModal(false)}
+        projectTitle={projectData?.title || "Project"}
+        organizerName={projectData?.creator || "Organizer"}
+        projectImage={images.length > 0 ? images[0] : undefined}
+        onContinue={handleDonateContinue}
+      />
     </>
   );
 }
