@@ -1,4 +1,4 @@
-import { stringToBytes, pad, hexToBytes, bytesToHex } from "viem";
+import { stringToBytes, pad, hexToBytes, bytesToHex, toHex } from "viem";
 
 /**
  * Converts a string to bytes32 (exactly 32 bytes)
@@ -22,8 +22,9 @@ export function stringToBytes32(str: string): `0x${string}` {
     throw new Error(`Padding failed: expected 32 bytes, got ${padded.length} bytes`);
   }
   
-  // Convert ByteArray to hex string (should be exactly 64 hex characters)
-  const hex = bytesToHex(padded);
+  // Use toHex with size parameter to ensure exactly bytes32 format
+  // This tells viem this is exactly 32 bytes
+  const hex = toHex(padded, { size: 32 });
   
   // Verify hex string is exactly 64 characters (32 bytes * 2)
   if (hex.length !== 66) { // 0x + 64 hex chars

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FadeInSection } from "./FadeInSection";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { ProjectCard } from "./ProjectCard";
+import { createProjectUrl } from "~~/utils/slug";
 
 const MOCK_PROJECTS = [
   {
@@ -161,7 +162,7 @@ export default function ProjectsPreview() {
             >
               <FadeInSection>
                 <Link
-                  href={`/projects/${displayProjects[0]?.id}`}
+                  href={displayProjects[0] ? createProjectUrl(displayProjects[0].id, displayProjects[0].title) : "#"}
                   className="group block outline-none focus-visible:ring-2 ring-[#E1FFFF]"
                 >
                   <ProjectCard project={displayProjects[0]} />
@@ -173,7 +174,7 @@ export default function ProjectsPreview() {
             >
               <FadeInSection>
                 <Link
-                  href={`/projects/${displayProjects[1]?.id}`}
+                  href={displayProjects[1] ? createProjectUrl(displayProjects[1].id, displayProjects[1].title) : "#"}
                   className="group block outline-none focus-visible:ring-2 ring-[#E1FFFF]"
                 >
                   <ProjectCard project={displayProjects[1]} />
@@ -188,7 +189,7 @@ export default function ProjectsPreview() {
             >
               <FadeInSection>
                 <Link
-                  href={`/projects/${displayProjects[2]?.id}`}
+                  href={displayProjects[2] ? createProjectUrl(displayProjects[2].id, displayProjects[2].title) : "#"}
                   className="group block w-full outline-none focus-visible:ring-2 ring-[#E1FFFF]"
                 >
                   <ProjectCard project={displayProjects[2]} />
@@ -200,7 +201,7 @@ export default function ProjectsPreview() {
             >
               <FadeInSection>
                 <Link
-                  href={`/projects/${displayProjects[3]?.id}`}
+                  href={displayProjects[3] ? createProjectUrl(displayProjects[3].id, displayProjects[3].title) : "#"}
                   className="group block w-full outline-none focus-visible:ring-2 ring-[#E1FFFF]"
                 >
                   <ProjectCard project={displayProjects[3]} />
@@ -212,7 +213,7 @@ export default function ProjectsPreview() {
             >
               <FadeInSection>
                 <Link
-                  href={`/projects/${displayProjects[4]?.id}`}
+                  href={displayProjects[4] ? createProjectUrl(displayProjects[4].id, displayProjects[4].title) : "#"}
                   className="group block w-full outline-none focus-visible:ring-2 ring-[#E1FFFF]"
                 >
                   <ProjectCard project={displayProjects[4]} />

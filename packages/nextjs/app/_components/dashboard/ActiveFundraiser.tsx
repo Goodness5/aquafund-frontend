@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PencilIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { createProjectUrl } from "~~/utils/slug";
 
 interface ActiveFundraiserProps {
   project?: {
@@ -76,7 +77,7 @@ export default function ActiveFundraiser({ project = mockActiveFundraiser }: Act
             <span>Edit Fundraiser</span>
           </Link>
           <Link
-            href={`/projects/${project.id}`}
+            href={createProjectUrl(project.id, project.title)}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-colors font-medium text-sm lg:text-base"
           >
             <span>View Public Page</span>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { createProjectUrl } from "~~/utils/slug";
 import {
   ShareIcon,
   PencilIcon,
@@ -30,7 +31,7 @@ export interface FundraiserCardData {
 interface FundraiserCardProps {
   fundraiser: FundraiserCardData;
   onEdit?: (id: number) => void;
-  onShare?: (id: number) => void;
+  onShare?: (id: number, title: string) => void;
   onTogglePause?: (id: number) => void;
 }
 
@@ -77,7 +78,7 @@ export default function FundraiserCard({
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onShare?.(fundraiser.id);
+    onShare?.(fundraiser.id, fundraiser.title);
   };
 
   return (
@@ -108,16 +109,22 @@ export default function FundraiserCard({
       </div>
 
       {/* Project Image */}
-      {fundraiser.image && (
+      {/* {fundraiser.image && (
         <div className="relative w-full h-40 rounded-lg overflow-hidden mb-4 bg-gray-100">
           <Image
             src={fundraiser.image}
             alt={fundraiser.title}
             fill
             className="object-cover"
+            unoptimized
+            onError={(e) => {
+              console.error("Image load error:", fundraiser.image);
+              
+              e.currentTarget.src = "/Home.png";
+            }}
           />
         </div>
-      )}
+      )} */}
 
       {/* Project Title */}
       <h3 className="text-lg font-bold text-[#001627] mb-3 line-clamp-2">
@@ -180,7 +187,7 @@ export default function FundraiserCard({
       {/* Actions */}
       <div className="flex items-center justify-between gap-3">
         <Link
-          href={`/projects/${fundraiser.id}`}
+          href={createProjectUrl(fundraiser.id, fundraiser.title)}
           className="flex items-center gap-2 px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] transition-colors text-sm font-medium"
         >
           <EyeIcon className="w-4 h-4" />

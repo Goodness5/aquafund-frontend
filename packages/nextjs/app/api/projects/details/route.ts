@@ -33,95 +33,99 @@ export async function GET(req: NextRequest) {
       transport: http(),
     });
 
-    // projectAddress is required - fetch full details from Project contract
-    if (!projectAddress) {
-      console.error("❌ [API] Project address is required to fetch full project details");
+    // Get Registry contract address
+    const registryAddress = externalContracts[97]?.AquaFundRegistry?.address;
+    if (!registryAddress) {
+      console.error("❌ [API] Registry contract address not found");
       return NextResponse.json(
-        { error: "Project address is required. Use /api/projects/address?projectId=X to get the address first." },
-        { status: 400 }
+        { error: "Registry contract address not configured" },
+        { status: 500 }
       );
     }
-    console.log("📋 [API] Using Project contract to fetch full details:", {
-      projectAddress,
+
+    console.log("📋 [API] Using Registry to fetch project details:", {
+      registryAddress,
       projectId,
       chainId: 97,
       chainName: "BSC Testnet",
     });
 
-    // Verify contract address is valid
-    if (!projectAddress || !projectAddress.startsWith("0x") || projectAddress.length !== 42) {
-      console.error("❌ [API] Invalid project address:", projectAddress);
-      return NextResponse.json(
-        { error: `Invalid project address: ${projectAddress}` },
-        { status: 400 }
-      );
-    }
-
     try {
-      console.log("📞 [API] Calling Project contract - getProjectInfo:", {
-        contractAddress: projectAddress,
-        functionName: "getProjectInfo",
-        functionSignature: "getProjectInfo() returns (ProjectInfo)",
-        args: [],
+      console.log("📞 [API] Calling Registry contract - getProjectDetails:", {
+        contractAddress: registryAddress,
+        functionName: "getProjectDetails",
+        functionSignature: "getProjectDetails(uint256) returns (ProjectInfo)",
+        args: [BigInt(projectId)],
         projectId: projectId,
-        abiLength: AquaFundProjectAbi.length,
       });
 
-      // Fetch project info and additional stats in parallel
-      const [projectInfo, donors, donationCount] = await Promise.all([
-        publicClient.readContract({
-          address: projectAddress as `0x${string}`,
-          abi: AquaFundProjectAbi,
-          functionName: "getProjectInfo",
-          args: [],
-        }),
-        publicClient.readContract({
-          address: projectAddress as `0x${string}`,
-          abi: AquaFundProjectAbi,
-          functionName: "getDonors",
-          args: [],
-        }).catch(() => []), // Fallback to empty array if fails
-        publicClient.readContract({
-          address: projectAddress as `0x${string}`,
-          abi: AquaFundProjectAbi,
-          functionName: "getDonationCount",
-          args: [],
-        }).catch(() => BigInt(0)), // Fallback to 0 if fails
-      ]);
+      // Fetch project details from Registry
+      const projectInfo = await publicClient.readContract({
+        address: registryAddress as `0x${string}`,
+        abi: AquaFundRegistryAbi,
+        functionName: "getProjectDetails",
+        args: [BigInt(projectId)],
+      });
 
-        console.log("✅ [API] Project contract call successful - Raw response:", {
-          projectInfo,
-          type: typeof projectInfo,
-          isArray: Array.isArray(projectInfo),
-          keys: projectInfo ? Object.keys(projectInfo) : null,
-          fullStructure: JSON.stringify(projectInfo, (key, value) =>
-            typeof value === "bigint" ? value.toString() : value
-          ),
-        });
+      console.log("✅ [API] Registry call successful - Raw response:", {
+        projectInfo,
+        type: typeof projectInfo,
+        isArray: Array.isArray(projectInfo),
+        keys: projectInfo ? Object.keys(projectInfo) : null,
+        fullStructure: JSON.stringify(projectInfo, (key, value) =>
+          typeof value === "bigint" ? value.toString() : value
+        ),
+      });
 
-        // getProjectInfo returns ProjectInfo struct directly as a tuple
-        // viem decodes it as an object with the struct fields
-        let info = projectInfo as any;
-        
-        // Handle both tuple (array) and object formats
-        if (Array.isArray(projectInfo)) {
-          // If it's an array, it's a tuple - convert to object based on ProjectInfo struct
-          info = {
-            projectId: projectInfo[0],
-            admin: projectInfo[1],
-            creator: projectInfo[2],
-            fundingGoal: projectInfo[3],
-            fundsRaised: projectInfo[4],
-            status: projectInfo[5],
-            title: projectInfo[6],
-            description: projectInfo[7],
-            images: projectInfo[8],
-            location: projectInfo[9],
-            category: projectInfo[10],
-            createdAt: projectInfo[11],
-            updatedAt: projectInfo[12],
-          };
+      // getProjectDetails returns ProjectInfo struct - viem decodes it as an object
+      let info = projectInfo as any;
+      
+      // Handle both tuple (array) and object formats
+      if (Array.isArray(projectInfo)) {
+        // If it's an array, it's a tuple - convert to object based on ProjectInfo struct
+        info = {
+          projectId: projectInfo[0],
+          admin: projectInfo[1],
+          creator: projectInfo[2],
+          fundingGoal: projectInfo[3],
+          fundsRaised: projectInfo[4],
+          status: projectInfo[5],
+          title: projectInfo[6],
+          description: projectInfo[7],
+          images: projectInfo[8],
+          location: projectInfo[9],
+          category: projectInfo[10],
+          createdAt: projectInfo[11],
+          updatedAt: projectInfo[12],
+        };
+      }
+
+      // Get project address from parameter to fetch donors and donation count
+      let donors: any[] = [];
+      let donationCount: bigint = BigInt(0);
+
+      if (projectAddress && projectAddress.startsWith("0x") && projectAddress.length === 42) {
+        try {
+          const [donorsResult, donationCountResult] = await Promise.all([
+            publicClient.readContract({
+              address: projectAddress as `0x${string}`,
+              abi: AquaFundProjectAbi,
+              functionName: "getDonors",
+              args: [],
+            }).catch(() => []) as Promise<any[]>,
+            publicClient.readContract({
+              address: projectAddress as `0x${string}`,
+              abi: AquaFundProjectAbi,
+              functionName: "getDonationCount",
+              args: [],
+            }).catch(() => BigInt(0)) as Promise<bigint>,
+          ]);
+          donors = Array.isArray(donorsResult) ? donorsResult : [];
+          donationCount = typeof donationCountResult === "bigint" ? donationCountResult : BigInt(0);
+        } catch (err) {
+          console.warn("⚠️ [API] Could not fetch donors/donation count:", err);
         }
+      }
         
         console.log("📦 [API] Extracted info object:", {
           info,
@@ -142,45 +146,49 @@ export async function GET(req: NextRequest) {
           updatedAt: info?.updatedAt?.toString(),
         });
         
-        if (!info) {
-          console.warn("⚠️ [API] Project info is null/undefined:", {
-            projectId,
-            projectAddress,
-            rawResponse: projectInfo,
-          });
-          return NextResponse.json(
-            { error: `Project ${projectId} info is null` },
-            { status: 404 }
-          );
-        }
+      if (!info) {
+        console.warn("⚠️ [API] Project info is null/undefined:", {
+          projectId,
+          projectAddress,
+          rawResponse: projectInfo,
+        });
+        return NextResponse.json(
+          { error: `Project ${projectId} info is null` },
+          { status: 404 }
+        );
+      }
+      
+      if (!info.admin || info.admin === "0x0000000000000000000000000000000000000000") {
+        console.warn("⚠️ [API] Project info has invalid admin:", {
+          projectId,
+          projectAddress,
+          admin: info?.admin,
+          hasInfo: !!info,
+        });
+        return NextResponse.json(
+          { error: `Project ${projectId} has invalid admin address` },
+          { status: 404 }
+        );
+      }
         
-        if (!info.admin || info.admin === "0x0000000000000000000000000000000000000000") {
-          console.warn("⚠️ [API] Project info has invalid admin:", {
-            projectId,
-            projectAddress,
-            admin: info?.admin,
-            hasInfo: !!info,
-          });
-          return NextResponse.json(
-            { error: `Project ${projectId} has invalid admin address` },
-            { status: 404 }
-          );
-        }
-        
-        // Decode bytes32 fields to strings
+        // Registry returns bytes32 for title, description, location, and category
         const title = bytes32ToString(info.title);
         const description = bytes32ToString(info.description);
-        const imagePublicIds = bytes32ArrayToStringArray(info.images);
         const location = bytes32ToString(info.location);
         const category = bytes32ToString(info.category);
         
+        // Decode bytes32[] images array to strings
+        const imagePublicIds = bytes32ArrayToStringArray(info.images);
+        
         // Reconstruct Cloudinary URLs from publicIds
-        // publicId format stored: "fund/px1bki0zxgw2vmcse7rw" (full publicId with folder)
-        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{publicId}.jpg
-        const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "dqn6hax4c";
+        // publicId format stored: "fund/axn1o67h2bz9zieh9cop" (full publicId with folder)
+        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{publicId}
+        // Note: Cloudinary URLs work without file extension, the publicId is enough
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dqn6hax4c";
         const images = imagePublicIds.map((publicId) => {
-          // publicId already includes folder (e.g., "fund/px1bki0zxgw2vmcse7rw")
-          return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}.jpg`;
+          // publicId already includes folder (e.g., "fund/axn1o67h2bz9zieh9cop")
+          // Cloudinary will serve the image with the correct format based on the upload
+          return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;
         });
         
         // Get donor count and donation count

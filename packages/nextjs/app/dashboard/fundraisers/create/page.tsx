@@ -288,13 +288,13 @@ export default function CreateFundraiserPage() {
         description: formData.description,
         descriptionBytes32,
         descriptionLength: formData.description.length,
-        imageCount: imagePublicIds.length,
-        imagePublicIds: imagePublicIds,
-        imagesBytes32: imagesBytes32.length,
         location: formData.location,
         locationBytes32,
         category: formData.category,
         categoryBytes32,
+        imageCount: imagePublicIds.length,
+        imagePublicIds: imagePublicIds,
+        imagesBytes32: imagesBytes32.length,
       });
       
       // Step 3: Convert goal amount to wei

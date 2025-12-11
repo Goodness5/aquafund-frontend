@@ -353,8 +353,8 @@ export default function FundraisersPage() {
     window.location.href = `/dashboard/fundraisers/${id}/edit`;
   };
 
-  const handleShare = (id: number) => {
-    // Share functionality
+  const handleShare = (id: number, title: string) => {
+    // Share functionality - use redirect URL, it will handle slug
     const url = `${window.location.origin}/projects/${id}`;
     if (navigator.share) {
       navigator.share({

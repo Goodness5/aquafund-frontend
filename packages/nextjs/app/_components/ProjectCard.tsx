@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { createProjectUrl } from "~~/utils/slug";
 
 export type Project = {
   id: number;
@@ -49,6 +50,7 @@ export function DonateButton({ projectId, variant = "dark" }: { projectId: numbe
     <button
       onClick={e => {
         e.stopPropagation();
+        // For now, use ID only - the redirect page will handle slug generation
         router.push(`/projects/${projectId}`);
       }}
       className="flex items-center gap-1 mt-2 text-[1em] font-semibold hover:opacity-80 transition-opacity cursor-pointer"
