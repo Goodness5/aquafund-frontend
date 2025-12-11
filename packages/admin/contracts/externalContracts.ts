@@ -18,19 +18,19 @@ export type GenericContractsDeclaration = {
 const externalContracts = {
   97: {
     AquaFundRegistry: {
-      address: "0xf171582a2FaFC0cb8d6436Eae9240920d511998a" as `0x${string}`,
+      address: "0x86e63f4c3C132AA0fEA1B2980b7E8191f4Ee4825" as `0x${string}`,
       abi: AquaFundRegistryAbi,
     },
     AquaFundFactory: {
-      address: "0x485B3c7C328bb9b62C1e5ce2906BC9Be7d589280" as `0x${string}`,
+      address: "0x9486F28D72a08d522cF25dFF3AA7a1B4864Fe47D" as `0x${string}`,
       abi: AquaFundFactoryAbi,
     },
     AquaFundProject: {
-      address: "0xc9620e577D0C43B5D09AE8EA406eced818402739" as `0x${string}`,
+      address: "0x8ED03B830ACaC2FC67497a3AfAa9653eFbB54b01" as `0x${string}`,
       abi: AquaFundProjectAbi,
     },
     AquaFundBadge: {
-      address: "0x1aF8c0651d1724EDf62410cb0B3C7cD459Ed9d2D" as `0x${string}`,
+      address: "0xee508704a55e1b623aB643E6A694Dbfe8355C157" as `0x${string}`,
       abi: AquaFundBadgeAbi,
     },
   },

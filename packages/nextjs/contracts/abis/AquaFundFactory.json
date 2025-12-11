@@ -470,13 +470,38 @@
         "type": "address"
       },
       {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
         "name": "fundingGoal",
         "type": "uint256"
       },
       {
         "internalType": "bytes32",
-        "name": "metadataURI",
+        "name": "title",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "description",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "images",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "location",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "category",
         "type": "bytes32"
       }
     ],

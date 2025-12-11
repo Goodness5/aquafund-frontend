@@ -236,6 +236,12 @@
         "type": "address"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "fundingGoal",
@@ -244,7 +250,31 @@
       {
         "indexed": false,
         "internalType": "bytes32",
-        "name": "metadataUri",
+        "name": "title",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "description",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32[]",
+        "name": "images",
+        "type": "bytes32[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "location",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "category",
         "type": "bytes32"
       }
     ],
@@ -463,6 +493,11 @@
             "type": "address"
           },
           {
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          },
+          {
             "internalType": "uint256",
             "name": "fundingGoal",
             "type": "uint256"
@@ -479,8 +514,38 @@
           },
           {
             "internalType": "bytes32",
-            "name": "metadataUri",
+            "name": "title",
             "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "description",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32[]",
+            "name": "images",
+            "type": "bytes32[]"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "location",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "category",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "createdAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "updatedAt",
+            "type": "uint64"
           }
         ],
         "internalType": "struct IAquaFundProject.ProjectInfo",
@@ -517,13 +582,38 @@
         "type": "address"
       },
       {
+        "internalType": "address",
+        "name": "_creator",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
         "name": "_fundingGoal",
         "type": "uint256"
       },
       {
         "internalType": "bytes32",
-        "name": "_metadataUri",
+        "name": "_title",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_description",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "_images",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_location",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_category",
         "type": "bytes32"
       }
     ],
