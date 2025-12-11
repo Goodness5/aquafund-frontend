@@ -79,11 +79,7 @@ export default function SignInPage() {
 
         // Handle redirects based on NGO status
         const returnUrl = new URLSearchParams(window.location.search).get("return");
-        if (returnUrl) {
-          router.push(returnUrl);
-          return;
-        }
-
+        
         // Check NGO status and redirect accordingly
         // Handle both status and statusVerification fields
         const ngoStatus = processedNGO?.status || processedNGO?.statusVerification;
@@ -98,11 +94,19 @@ export default function SignInPage() {
           // NGO was rejected - redirect to NGO creation to resubmit
           router.push("/dashboard/ngo/setup?rejected=true");
         } else if (ngoStatus === "APPROVED") {
-          // NGO is approved - go to dashboard
-          router.push("/dashboard");
+          // NGO is approved - check if there's a return URL
+          if (returnUrl) {
+            router.push(returnUrl);
+          } else {
+            router.push("/dashboard");
+          }
         } else {
-          // Unknown status - default to dashboard
-          router.push("/dashboard");
+          // Unknown status - check return URL, otherwise default to dashboard
+          if (returnUrl) {
+            router.push(returnUrl);
+          } else {
+            router.push("/dashboard");
+          }
         }
       } else {
         throw new Error("Invalid response from server");

@@ -5,25 +5,50 @@ import Image from "next/image";
 import { Button } from "./Button";
 import { FadeInSection } from "./FadeInSection";
 
-// Placeholder images for the circular network - replace with actual project images
+// Images arranged on three circular lines - each image is unique
+// Outer circle (6 images), middle circle (4 images), inner circle (2 images)
 const networkImages = [
-  { src: "/Home.png", alt: "Community support" },
-  { src: "/thumbnail.jpg", alt: "Agricultural project" },
-  { src: "/impact-map.svg", alt: "Environmental impact" },
-  { src: "/Home.png", alt: "Rural development" },
-  { src: "/thumbnail.jpg", alt: "Community gathering" },
-  { src: "/impact-map.svg", alt: "Field work" },
+  // Outer circle images
+  { src: "/fundraising-img-1.svg", alt: "Community support", circle: "outer", index: 0 },
+  { src: "/rounded-img2.svg", alt: "Agricultural project", circle: "outer", index: 1 },
+  { src: "/rounded-img3.svg", alt: "Environmental impact", circle: "outer", index: 2 },
+  { src: "/rounded-img4.svg", alt: "Rural development", circle: "outer", index: 3 },
+  { src: "/rounded-img5.svg", alt: "Community gathering", circle: "outer", index: 4 },
+  { src: "/rounded-img6.svg", alt: "Field work", circle: "outer", index: 5 },
 ];
 
 export default function ProjectsHero() {
+  const getImagePosition = (circle: string, index: number, total: number) => {
+    const angle = (index / total) * 2 * Math.PI - Math.PI / 2; // Start from top
+    let radius = 0;
+    
+    // Closer circles: reduced spacing between them
+    if (circle === "outer") {
+      radius = 160;
+    } else if (circle === "middle") {
+      radius = 110;
+    } else {
+      radius = 60;
+    }
+    
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    
+    return { x, y, radius };
+  };
+
+  const outerImages = networkImages.filter(img => img.circle === "outer");
+  const middleImages = networkImages.filter(img => img.circle === "middle");
+  const innerImages = networkImages.filter(img => img.circle === "inner");
+
   return (
     <section 
-      className="py-16 md:py-24"
+      className="py-16 md:py-24 bg-gradient-to-tr from-[#fff] to-[#1BCBEE33] "
       style={{
-        background: "linear-gradient(135deg, #1BCBEE33 0%, #00BF3C15 50%, #CFFED914 100%)",
+        // background: "linear-gradient(135deg, #1BCBEE33 0%, #00BF3C15 50%, #CFFED914 100%)",
       }}
     >
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container mx-auto px-2 md:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text Content */}
           <FadeInSection>
@@ -44,65 +69,74 @@ export default function ProjectsHero() {
 
           {/* Right: Circular Network Visualization */}
           <FadeInSection delay={100}>
-            <div className="relative flex items-center justify-center min-h-[500px]">
+            <div className="relative flex items-center justify-center w-full">
               <div className="relative w-full max-w-[500px] aspect-square">
-                {/* Central Green Circle */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[#E1FFFF] rounded-full z-10 shadow-lg" />
-
-                {/* Dashed Lines from Center to Images */}
-                <svg className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet">
-                  {networkImages.map((_, i) => {
-                    const angle = (i / networkImages.length) * 2 * Math.PI;
-                    const radius = 180;
-                    const centerX = 250;
-                    const centerY = 250;
-                    const endX = centerX + Math.cos(angle) * radius;
-                    const endY = centerY + Math.sin(angle) * radius;
-                    
-                    return (
-                      <line
-                        key={`line-${i}`}
-                        x1={centerX}
-                        y1={centerY}
-                        x2={endX}
-                        y2={endY}
-                        stroke="#00BF3C"
-                        strokeWidth="2"
-                        strokeDasharray="8,4"
-                        opacity="0.6"
-                      />
-                    );
-                  })}
+                {/* SVG for three dotted circles only */}
+                <svg className="left-0 w-full h-full z-10 pointer-events-none" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet">
+                  {/* Three Dotted Circles - closer together */}
+                  {/* Outer dotted circle */}
+                  <circle
+                    cx="250"
+                    cy="250"
+                    r="170"
+                    fill="none"
+                    stroke="#00BF3C"
+                    strokeWidth="2"
+                    strokeDasharray="8,4"
+                    opacity="0.8"
+                  />
+                  
+                  {/* Middle dotted circle */}
+                  <circle
+                    cx="250"
+                    cy="250"
+                    r="145"
+                    fill="none"
+                    stroke="#00BF3C"
+                    strokeWidth="2"
+                    strokeDasharray="8,4"
+                    opacity="0.8"
+                  />
+                  
+                  {/* Inner dotted circle */}
+                  <circle
+                    cx="250"
+                    cy="250"
+                    r="125"
+                    fill="none"
+                    stroke="#00BF3C"
+                    strokeWidth="2"
+                    strokeDasharray="8,4"
+                    opacity="0.8"
+                  />
                 </svg>
 
-                {/* Network Images in Circle */}
-                {networkImages.map((img, i) => {
-                  const angle = (i / networkImages.length) * 2 * Math.PI;
-                  const radius = 180;
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
-                  
+             
+                {/* Images positioned on the three circles */}
+                {/* Outer circle images */}
+                {outerImages.map((img) => {
+                  const pos = getImagePosition(img.circle, img.index, outerImages.length);
                   return (
                     <div
-                      key={i}
+                      key={`outer-${img.index}`}
                       className="absolute top-1/2 left-1/2 z-20"
                       style={{
-                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                        transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
                       }}
                     >
-                      {/* Circular Image */}
-                      <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                         <Image
                           src={img.src}
                           alt={img.alt}
-                          width={96}
-                          height={96}
+                          width={100}
+                          height={100}
                           className="object-cover w-full h-full"
                         />
                       </div>
                     </div>
                   );
                 })}
+
               </div>
             </div>
           </FadeInSection>

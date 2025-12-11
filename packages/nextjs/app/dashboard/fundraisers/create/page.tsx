@@ -147,7 +147,16 @@ export default function CreateFundraiserPage() {
   const uploadImagesToCloudinary = async (images: File[]): Promise<string[]> => {
     const uploadedUrls: string[] = [];
     
-    for (const image of images) {
+    console.log(`📤 [Create] Starting upload of ${images.length} image(s) to Cloudinary...`);
+    
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      console.log(`📤 [Create] Uploading image ${i + 1}/${images.length}:`, {
+        fileName: image.name,
+        fileSize: `${(image.size / 1024 / 1024).toFixed(2)} MB`,
+        fileType: image.type,
+      });
+      
       // Validate file size (5MB limit)
       if (image.size > 5 * 1024 * 1024) {
         throw new Error(`Image "${image.name}" exceeds 5MB limit. Please compress or resize the image.`);
@@ -165,23 +174,46 @@ export default function CreateFundraiserPage() {
       const data = await response.json();
       
       if (!response.ok || !data.success || !data.url) {
+        console.error(`❌ [Create] Failed to upload image ${i + 1}:`, {
+          fileName: image.name,
+          responseStatus: response.status,
+          error: data.error,
+        });
         throw new Error(data.error || "Failed to upload image");
       }
+      
+      console.log(`✅ [Create] Image ${i + 1} uploaded successfully:`, {
+        fileName: image.name,
+        url: data.url,
+      });
       
       uploadedUrls.push(data.url);
     }
     
+    console.log(`✅ [Create] All ${uploadedUrls.length} image(s) uploaded successfully`);
     return uploadedUrls;
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
     
+    console.log("🚀 [Create] Starting fundraiser creation process...");
     setIsSubmitting(true);
     setSubmitError(null);
     
     try {
       // Validate required fields
+      console.log("📋 [Create] Step 1: Validating form data...", {
+        campaignTitle: formData.campaignTitle,
+        goalAmount: formData.goalAmount,
+        description: formData.description ? `${formData.description.substring(0, 50)}...` : null,
+        hasImages: formData.images?.length > 0,
+        imageCount: formData.images?.length || 0,
+        location: formData.location,
+        country: formData.country,
+        category: formData.category,
+      });
+
       if (!formData.campaignTitle || !formData.goalAmount || !formData.description) {
         throw new Error("Please fill in all required fields");
       }
@@ -194,7 +226,20 @@ export default function CreateFundraiserPage() {
         throw new Error("Please sign in to create a fundraiser");
       }
       
+      console.log("✅ [Create] Form validation passed");
+      console.log("👤 [Create] User info:", {
+        userId: user.id,
+        userEmail: user.email,
+        walletAddress: address,
+      });
+      
       // Check if user has PROJECT_CREATOR_ROLE
+      console.log("🔐 [Create] Checking PROJECT_CREATOR_ROLE...", {
+        isCreator,
+        creatorRole: creatorRole?.toString(),
+        address,
+      });
+
       if (isCreator === false) {
         throw new Error("You don't have permission to create projects. Your wallet address needs to be granted the PROJECT_CREATOR_ROLE. Please contact an administrator.");
       }
@@ -202,15 +247,25 @@ export default function CreateFundraiserPage() {
       if (isCreator === undefined) {
         throw new Error("Checking permissions... Please wait a moment and try again.");
       }
+
+      console.log("✅ [Create] User has PROJECT_CREATOR_ROLE");
       
       // Step 1: Upload images to Cloudinary
       let imageUrls: string[] = [];
       if (formData.images && formData.images.length > 0) {
+        console.log(`📤 [Create] Step 2: Uploading ${formData.images.length} image(s) to Cloudinary...`);
         imageUrls = await uploadImagesToCloudinary(formData.images);
+        console.log("✅ [Create] Images uploaded successfully:", {
+          imageCount: imageUrls.length,
+          imageUrls: imageUrls.map((url, i) => `${i + 1}. ${url.substring(0, 50)}...`),
+        });
+      } else {
+        console.log("⏭️ [Create] Step 2: No images to upload");
       }
       
       // Step 2: Create metadata URI (use a simple hash of the title + description for now)
       // In production, you might want to upload to IPFS
+      console.log("📝 [Create] Step 3: Creating metadata...");
       const metadataString = JSON.stringify({
         title: formData.campaignTitle,
         description: formData.description,
@@ -220,13 +275,54 @@ export default function CreateFundraiserPage() {
         category: formData.category,
       });
       
+      console.log("📦 [Create] Metadata object:", {
+        title: formData.campaignTitle,
+        descriptionLength: formData.description.length,
+        imageCount: imageUrls.length,
+        location: formData.location,
+        country: formData.country,
+        category: formData.category,
+        metadataStringLength: metadataString.length,
+      });
+      
       // Create bytes32 hash of metadata
       const metadataHash = keccak256(stringToBytes(metadataString)) as `0x${string}`;
+      console.log("🔐 [Create] Metadata hash (bytes32):", {
+        metadataHash,
+        hashLength: metadataHash.length,
+      });
       
       // Step 3: Convert goal amount to wei
+      console.log("💰 [Create] Step 4: Converting goal amount to wei...", {
+        goalAmount: formData.goalAmount,
+        goalAmountWei: parseEther(formData.goalAmount || "0").toString(),
+      });
       const goalAmountWei = parseEther(formData.goalAmount || "0");
       
       // Step 4: Call smart contract to create project
+      console.log("📞 [Create] Step 5: Calling Factory contract createProject function...");
+      console.log("📋 [Create] Contract call details:", {
+        contractName: "AquaFundFactory",
+        functionName: "createProject",
+        functionSignature: "createProject(address admin, uint256 fundingGoal, bytes32 metadataURI)",
+        args: {
+          admin: address,
+          adminType: "address",
+          fundingGoal: goalAmountWei.toString(),
+          fundingGoalType: "uint256 (wei)",
+          metadataURI: metadataHash,
+          metadataURIType: "bytes32",
+        },
+        network: targetNetwork.name,
+        chainId: targetNetwork.id,
+        expectedReturn: "address projectAddress",
+      });
+      console.log("📋 [Create] Factory contract configuration:", {
+        contractName: "AquaFundFactory",
+        // The actual address will be resolved by useScaffoldWriteContract from externalContracts
+        note: "Address resolved from externalContracts.ts based on chainId",
+      });
+
       const txHash = await (writeFactory as any)({
         functionName: "createProject",
         args: [
@@ -236,17 +332,33 @@ export default function CreateFundraiserPage() {
         ],
       });
       
-      console.log("Project created successfully! Transaction hash:", txHash);
+      console.log("✅ [Create] Project created successfully!", {
+        transactionHash: txHash,
+        admin: address,
+        fundingGoal: goalAmountWei.toString(),
+        metadataHash,
+        timestamp: new Date().toISOString(),
+      });
       
       // Clear localStorage after successful submission
       localStorage.removeItem(STORAGE_KEY);
+      console.log("🧹 [Create] Cleared localStorage");
       
       // Show success message and redirect to dashboard
       alert("Fundraiser created successfully on the blockchain! Transaction: " + txHash);
-      router.push("/dashboard");
+      console.log("🔄 [Create] Redirecting to dashboard...");
+      router.push("/dashboard/fundraisers");
       
     } catch (error: any) {
-      console.error("Error creating fundraiser:", error);
+      console.error("❌ [Create] Error creating fundraiser:", {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        cause: error?.cause,
+        name: error?.name,
+        code: error?.code,
+        data: error?.data,
+      });
       setSubmitError(error.message || "Failed to create fundraiser. Please try again.");
       setIsSubmitting(false);
     }
