@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import { parseEther, keccak256, stringToBytes } from "viem";
+import { parseEther } from "viem";
+import { stringToBytes32 } from "~~/utils/bytes32";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../../_components/Button";
 import Step1Location from "../_components/Step1Location";
@@ -143,9 +144,9 @@ export default function CreateFundraiserPage() {
     }
   };
 
-  // Upload images to Cloudinary
+  // Upload images to Cloudinary and extract publicId
   const uploadImagesToCloudinary = async (images: File[]): Promise<string[]> => {
-    const uploadedUrls: string[] = [];
+    const publicIds: string[] = [];
     
     console.log(`📤 [Create] Starting upload of ${images.length} image(s) to Cloudinary...`);
     
@@ -164,7 +165,7 @@ export default function CreateFundraiserPage() {
       
       const formData = new FormData();
       formData.append("file", image);
-      formData.append("folder", "aquafund/fundraiser-images"); // Specify folder for fundraiser images
+      formData.append("folder", "fund"); // Use shorter folder name to reduce publicId length
       
       const response = await fetch("/api/upload/cloudinary", {
         method: "POST",
@@ -173,7 +174,7 @@ export default function CreateFundraiserPage() {
       
       const data = await response.json();
       
-      if (!response.ok || !data.success || !data.url) {
+      if (!response.ok || !data.success || !data.publicId) {
         console.error(`❌ [Create] Failed to upload image ${i + 1}:`, {
           fileName: image.name,
           responseStatus: response.status,
@@ -182,16 +183,22 @@ export default function CreateFundraiserPage() {
         throw new Error(data.error || "Failed to upload image");
       }
       
+      // Store the full publicId (e.g., "fund/px1bki0zxgw2vmcse7rw")
+      // We'll reconstruct the URL when displaying: https://res.cloudinary.com/{cloud_name}/image/upload/{publicId}.jpg
+      const publicId = data.publicId as string;
+      
       console.log(`✅ [Create] Image ${i + 1} uploaded successfully:`, {
         fileName: image.name,
         url: data.url,
+        publicId: publicId,
+        publicIdLength: publicId.length,
       });
       
-      uploadedUrls.push(data.url);
+      publicIds.push(publicId);
     }
     
-    console.log(`✅ [Create] All ${uploadedUrls.length} image(s) uploaded successfully`);
-    return uploadedUrls;
+    console.log(`✅ [Create] All ${publicIds.length} image(s) uploaded successfully`);
+    return publicIds;
   };
 
   const handleSubmit = async () => {
@@ -250,46 +257,44 @@ export default function CreateFundraiserPage() {
 
       console.log("✅ [Create] User has PROJECT_CREATOR_ROLE");
       
-      // Step 1: Upload images to Cloudinary
-      let imageUrls: string[] = [];
+      // Step 1: Upload images to Cloudinary and get publicIds
+      let imagePublicIds: string[] = [];
       if (formData.images && formData.images.length > 0) {
         console.log(`📤 [Create] Step 2: Uploading ${formData.images.length} image(s) to Cloudinary...`);
-        imageUrls = await uploadImagesToCloudinary(formData.images);
+        imagePublicIds = await uploadImagesToCloudinary(formData.images);
         console.log("✅ [Create] Images uploaded successfully:", {
-          imageCount: imageUrls.length,
-          imageUrls: imageUrls.map((url, i) => `${i + 1}. ${url.substring(0, 50)}...`),
+          imageCount: imagePublicIds.length,
+          publicIds: imagePublicIds,
         });
       } else {
         console.log("⏭️ [Create] Step 2: No images to upload");
       }
       
-      // Step 2: Create metadata URI (use a simple hash of the title + description for now)
-      // In production, you might want to upload to IPFS
-      console.log("📝 [Create] Step 3: Creating metadata...");
-      const metadataString = JSON.stringify({
+      // Step 2: Convert metadata fields to bytes32
+      console.log("📝 [Create] Step 3: Converting metadata to bytes32...");
+      
+      // All metadata fields are bytes32 - convert and pad to exactly 32 bytes
+      const titleBytes32 = stringToBytes32(formData.campaignTitle || "");
+      const descriptionBytes32 = stringToBytes32(formData.description || "");
+      const locationBytes32 = stringToBytes32(formData.location || "");
+      const categoryBytes32 = stringToBytes32(formData.category || "");
+      
+      // Convert image publicIds array to bytes32 array
+      const imagesBytes32 = imagePublicIds.map(publicId => stringToBytes32(publicId));
+      
+      console.log("📦 [Create] Metadata converted to bytes32:", {
         title: formData.campaignTitle,
+        titleBytes32,
         description: formData.description,
-        images: imageUrls,
-        location: formData.location,
-        country: formData.country,
-        category: formData.category,
-      });
-      
-      console.log("📦 [Create] Metadata object:", {
-        title: formData.campaignTitle,
+        descriptionBytes32,
         descriptionLength: formData.description.length,
-        imageCount: imageUrls.length,
+        imageCount: imagePublicIds.length,
+        imagePublicIds: imagePublicIds,
+        imagesBytes32: imagesBytes32.length,
         location: formData.location,
-        country: formData.country,
+        locationBytes32,
         category: formData.category,
-        metadataStringLength: metadataString.length,
-      });
-      
-      // Create bytes32 hash of metadata
-      const metadataHash = keccak256(stringToBytes(metadataString)) as `0x${string}`;
-      console.log("🔐 [Create] Metadata hash (bytes32):", {
-        metadataHash,
-        hashLength: metadataHash.length,
+        categoryBytes32,
       });
       
       // Step 3: Convert goal amount to wei
@@ -304,39 +309,46 @@ export default function CreateFundraiserPage() {
       console.log("📋 [Create] Contract call details:", {
         contractName: "AquaFundFactory",
         functionName: "createProject",
-        functionSignature: "createProject(address admin, uint256 fundingGoal, bytes32 metadataURI)",
+        functionSignature: "createProject(address admin, address creator, uint256 fundingGoal, bytes32 title, bytes32 description, bytes32[] images, bytes32 location, bytes32 category)",
         args: {
           admin: address,
-          adminType: "address",
+          creator: address, // Same as admin for now
           fundingGoal: goalAmountWei.toString(),
-          fundingGoalType: "uint256 (wei)",
-          metadataURI: metadataHash,
-          metadataURIType: "bytes32",
+          title: titleBytes32,
+          description: descriptionBytes32,
+          images: imagesBytes32,
+          location: locationBytes32,
+          category: categoryBytes32,
         },
         network: targetNetwork.name,
         chainId: targetNetwork.id,
         expectedReturn: "address projectAddress",
-      });
-      console.log("📋 [Create] Factory contract configuration:", {
-        contractName: "AquaFundFactory",
-        // The actual address will be resolved by useScaffoldWriteContract from externalContracts
-        note: "Address resolved from externalContracts.ts based on chainId",
       });
 
       const txHash = await (writeFactory as any)({
         functionName: "createProject",
         args: [
           address as `0x${string}`, // admin address
+          address as `0x${string}`, // creator address
           goalAmountWei, // funding goal in wei
-          metadataHash, // metadata URI as bytes32
+          titleBytes32, // title as bytes32
+          descriptionBytes32, // description as bytes32
+          imagesBytes32, // images as bytes32[]
+          locationBytes32, // location as bytes32
+          categoryBytes32, // category as bytes32
         ],
       });
       
       console.log("✅ [Create] Project created successfully!", {
         transactionHash: txHash,
         admin: address,
+        creator: address,
         fundingGoal: goalAmountWei.toString(),
-        metadataHash,
+        title: formData.campaignTitle,
+        description: formData.description,
+        imagePublicIds: imagePublicIds,
+        location: formData.location,
+        category: formData.category,
         timestamp: new Date().toISOString(),
       });
       

@@ -196,22 +196,36 @@ export default function FundraisersPage() {
           })),
         });
 
-        // All projects from getProjectsByCreator are already for this user, so no need to filter by admin
-        // But we'll still log the admin to verify
+        // Filter projects by admin or creator address matching the user
         const userProjects = validResults
+          .filter((result) => {
+            const info = result?.details?.info || result?.details;
+            const admin = info?.admin;
+            const creator = info?.creator;
+            const matchesUser = 
+              (admin && admin.toLowerCase() === address?.toLowerCase()) ||
+              (creator && creator.toLowerCase() === address?.toLowerCase());
+            
+            console.log(`🔍 [Frontend] Filtering project ${result?.projectId}:`, {
+              projectId: result?.projectId,
+              admin,
+              creator,
+              userAddress: address,
+              matchesUser,
+            });
+            
+            return matchesUser;
+          })
           .map((result) => {
             const admin = result?.details?.info?.admin || result?.details?.admin;
+            const creator = result?.details?.info?.creator || result?.details?.creator;
             
             console.log(`✅ [Frontend] Processing project ${result?.projectId}:`, {
               projectId: result?.projectId,
               admin,
+              creator,
               adminMatchesUser: admin?.toLowerCase() === address?.toLowerCase(),
-              detailsStructure: {
-                hasDetails: !!result?.details,
-                hasInfo: !!result?.details?.info,
-                directAdmin: result?.details?.admin,
-                infoAdmin: result?.details?.info?.admin,
-              },
+              creatorMatchesUser: creator?.toLowerCase() === address?.toLowerCase(),
             });
             const info = result?.details?.info || result?.details;
             // Handle both string (from API) and BigInt formats
@@ -234,25 +248,50 @@ export default function FundraisersPage() {
             });
             
             // Determine status based on project state
-            // For now, we'll use a simple logic - can be enhanced with actual contract status
+            // Status: 0 = Active, 1 = Completed, 2 = Paused, 3 = Cancelled
+            const contractStatus = Number(info?.status || 0);
             let status: "active" | "completed" | "paused" = "active";
-            if (raised >= goal && goal > 0) {
+            if (contractStatus === 1 || (raised >= goal && goal > 0)) {
               status = "completed";
+            } else if (contractStatus === 2) {
+              status = "paused";
+            }
+            
+            // Get metadata from API response
+            const title = info?.title || "N/A";
+            const location = info?.location || "N/A";
+            const category = info?.category || "N/A";
+            const images = info?.images || [];
+            const firstImage = images.length > 0 ? images[0] : "N/A";
+            const donorCount = info?.donorCount || 0;
+            const donationCount = info?.donationCount || 0;
+            
+            // Calculate days left from createdAt (if available)
+            let daysLeft = 0;
+            if (info?.createdAt) {
+              const createdAt = Number(info.createdAt);
+              if (createdAt > 0) {
+                // Assuming 90 days campaign duration (can be adjusted)
+                const campaignDuration = 90 * 24 * 60 * 60; // 90 days in seconds
+                const endTime = createdAt + campaignDuration;
+                const now = Math.floor(Date.now() / 1000);
+                daysLeft = Math.max(0, Math.ceil((endTime - now) / (24 * 60 * 60)));
+              }
             }
             
             const fundraiserData = {
               id: result!.projectId,
-              title: `Project #${result!.projectId}`,
-              location: "Ethiopia", // Default - can be fetched from metadata
-              category: "Emergency Relief", // Default - can be fetched from metadata
+              title: title !== "N/A" ? title : `Project #${result!.projectId}`,
+              location: location !== "N/A" ? location : "N/A",
+              category: category !== "N/A" ? category : "N/A",
               status,
               raised,
               goal,
-              donors: 0, // Can be fetched separately if needed
-              daysLeft: 54, // Default - can be calculated from end date
-              recentDonations: 23, // Default - can be fetched from contract events
-              views: 567, // Default - can be tracked separately
-              image: "/Home.png",
+              donors: donorCount,
+              daysLeft: daysLeft > 0 ? daysLeft : 0,
+              recentDonations: donationCount,
+              views: 0, // Not available from contract, show 0
+              image: firstImage !== "N/A" ? firstImage : "/Home.png",
             } as FundraiserCardData;
 
             console.log(`✅ [Frontend] Created fundraiser data for project ${result!.projectId}:`, fundraiserData);

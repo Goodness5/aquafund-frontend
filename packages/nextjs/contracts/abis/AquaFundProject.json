@@ -149,10 +149,10 @@
         "type": "uint256"
       },
       {
-        "indexed": true,
-        "internalType": "bytes32",
+        "indexed": false,
+        "internalType": "string",
         "name": "evidenceHash",
-        "type": "bytes32"
+        "type": "string"
       },
       {
         "indexed": true,
@@ -249,15 +249,15 @@
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "title",
-        "type": "bytes32"
+        "type": "string"
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "description",
-        "type": "bytes32"
+        "type": "string"
       },
       {
         "indexed": false,
@@ -267,15 +267,15 @@
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "location",
-        "type": "bytes32"
+        "type": "string"
       },
       {
         "indexed": false,
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "category",
-        "type": "bytes32"
+        "type": "string"
       }
     ],
     "name": "ProjectInitialized",
@@ -440,9 +440,9 @@
       {
         "components": [
           {
-            "internalType": "bytes32",
+            "internalType": "string",
             "name": "evidenceHash",
-            "type": "bytes32"
+            "type": "string"
           },
           {
             "internalType": "uint64",
@@ -513,14 +513,14 @@
             "type": "uint8"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "string",
             "name": "title",
-            "type": "bytes32"
+            "type": "string"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "string",
             "name": "description",
-            "type": "bytes32"
+            "type": "string"
           },
           {
             "internalType": "bytes32[]",
@@ -528,14 +528,14 @@
             "type": "bytes32[]"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "string",
             "name": "location",
-            "type": "bytes32"
+            "type": "string"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "string",
             "name": "category",
-            "type": "bytes32"
+            "type": "string"
           },
           {
             "internalType": "uint64",
@@ -592,14 +592,14 @@
         "type": "uint256"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "_title",
-        "type": "bytes32"
+        "type": "string"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "_description",
-        "type": "bytes32"
+        "type": "string"
       },
       {
         "internalType": "bytes32[]",
@@ -607,14 +607,14 @@
         "type": "bytes32[]"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "_location",
-        "type": "bytes32"
+        "type": "string"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "_category",
-        "type": "bytes32"
+        "type": "string"
       }
     ],
     "name": "initialize",
@@ -672,9 +672,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "string",
         "name": "_evidenceHash",
-        "type": "bytes32"
+        "type": "string"
       }
     ],
     "name": "submitEvidence",
