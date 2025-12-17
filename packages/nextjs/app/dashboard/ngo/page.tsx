@@ -38,7 +38,7 @@ export default function NGOProfilePage() {
           <p className="text-sm lg:text-base text-[#475068]">Manage your NGO information</p>
         </div>
         {!ngo && (
-          <Link href="/dashboard/ngo/setup">
+          <Link href="/ngo/get-started">
             <Button
               size="lg"
               rounded="full"
@@ -53,7 +53,7 @@ export default function NGOProfilePage() {
       {!ngo ? (
         <div className="bg-white rounded-xl p-12 text-center">
           <p className="text-[#475068] text-lg mb-4">You haven't set up your NGO profile yet.</p>
-          <Link href="/dashboard/ngo/setup">
+          <Link href="/ngo/get-started">
             <Button
               size="lg"
               rounded="full"
@@ -103,7 +103,7 @@ export default function NGOProfilePage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-[#001627]">Organization Details</h2>
               {(isRejected || !isApproved) && (
-                <Link href="/dashboard/ngo/setup">
+                <Link href="/ngo/get-started">
                   <Button
                     size="md"
                     rounded="full"

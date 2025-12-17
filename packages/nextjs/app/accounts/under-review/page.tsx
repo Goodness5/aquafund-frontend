@@ -99,12 +99,12 @@ function AccountUnderReviewContent() {
         } else if (ngoStatus === "REJECTED") {
           // NGO was rejected - redirect to NGO creation to resubmit
           console.log("NGO rejected, redirecting to NGO creation");
-          router.replace("/dashboard/ngo/setup?rejected=true");
+          router.replace("/ngo/get-started?rejected=true");
           return;
         } else if (!freshNGO || freshNGO === null) {
           // No NGO - redirect to creation
           console.log("No NGO found, redirecting to NGO creation");
-          router.replace("/dashboard/ngo/setup");
+          router.replace("/ngo/get-started");
           return;
         }
         // If still PENDING, stay on this page

@@ -31,7 +31,7 @@ export function NGOGuard({ children, requireApproved = true }: NGOGuardProps) {
           // No NGO or not approved - redirect based on status
           if (!hasNGO()) {
             // No NGO at all - redirect to creation
-            router.replace("/dashboard/ngo/setup");
+            router.replace("/ngo/get-started");
             return;
           } else {
             // Check status (handle both status and statusVerification)
@@ -42,7 +42,7 @@ export function NGOGuard({ children, requireApproved = true }: NGOGuardProps) {
               return;
             } else if (ngoStatus === "REJECTED") {
               // NGO was rejected - redirect to creation with rejected flag
-              router.replace("/dashboard/ngo/setup?rejected=true");
+              router.replace("/ngo/get-started?rejected=true");
               return;
             }
           }
@@ -81,7 +81,7 @@ export function NGOGuard({ children, requireApproved = true }: NGOGuardProps) {
               You need to create an NGO profile before accessing this page.
             </p>
             <Link
-              href="/dashboard/ngo/setup"
+              href="/ngo/get-started"
               className="inline-block bg-[#0350B5] text-white px-6 py-3 rounded-lg hover:bg-[#034093] transition-colors font-medium"
             >
               Create NGO Profile
@@ -119,7 +119,7 @@ export function NGOGuard({ children, requireApproved = true }: NGOGuardProps) {
               Your NGO profile was rejected. Please update your profile and resubmit for review.
             </p>
             <Link
-              href="/dashboard/ngo/setup?rejected=true"
+              href="/ngo/get-started?rejected=true"
               className="inline-block bg-[#0350B5] text-white px-6 py-3 rounded-lg hover:bg-[#034093] transition-colors font-medium"
             >
               Update NGO Profile

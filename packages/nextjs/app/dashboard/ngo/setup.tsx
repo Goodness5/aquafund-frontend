@@ -176,7 +176,7 @@ function GetStartedPageContent() {
             hasUser: !!currentUser,
             hasToken: !!token,
           });
-          router.push("/accounts/sign-in?return=" + encodeURIComponent("/dashboard/ngo/setup"));
+          router.push("/accounts/sign-in?return=" + encodeURIComponent("/ngo/get-started"));
           setHasCheckedUser(true);
           return;
         }

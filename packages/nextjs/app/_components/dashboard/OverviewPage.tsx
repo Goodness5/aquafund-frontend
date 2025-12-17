@@ -160,7 +160,7 @@ export default function OverviewPage() {
                 </div>
               </div>
               <Link
-                href="/dashboard/ngo/setup"
+                href="/ngo/get-started"
                 className="flex items-center justify-center gap-2 px-4 lg:px-6 py-2 lg:py-3 bg-[#0350B5] text-white rounded-full hover:bg-[#034093] transition-all duration-300 font-medium text-sm lg:text-base whitespace-nowrap"
               >
                 Set Up NGO
