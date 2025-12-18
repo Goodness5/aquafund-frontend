@@ -105,7 +105,7 @@ export default function NGOProfilePage() {
               {(isRejected || !isApproved) && (
                 <Link href="/ngo/get-started">
                   <Button
-                    size="md"
+                    size="default"
                     rounded="full"
                     className="bg-[#0350B5] text-white hover:bg-[#034093] flex items-center gap-2"
                   >

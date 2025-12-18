@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "../../services/store/authStore";
 
 export default function StartFundraiserPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isAuthenticated, loadFromStorage } = useAuthStore();
 
   useEffect(() => {
