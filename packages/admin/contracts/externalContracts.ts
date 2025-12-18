@@ -22,11 +22,11 @@ const externalContracts = {
       abi: AquaFundRegistryAbi,
     },
     AquaFundFactory: {
-      address: "0x9486F28D72a08d522cF25dFF3AA7a1B4864Fe47D" as `0x${string}`,
+      address: "0x4c2aFA6e54024AB86168662AeAF5b295a2FF6E4C" as `0x${string}`,
       abi: AquaFundFactoryAbi,
     },
     AquaFundProject: {
-      address: "0x8ED03B830ACaC2FC67497a3AfAa9653eFbB54b01" as `0x${string}`,
+      address: "0xFed99A6362fc4bDb4776Ec61Bb7612d5bf278CbF" as `0x${string}`,
       abi: AquaFundProjectAbi,
     },
     AquaFundBadge: {
