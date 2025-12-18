@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import { parseEther } from "viem";
-import { stringToBytes32 } from "~~/utils/bytes32";
+// Removed stringToBytes32 import - ABIs now use strings directly
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
 import { Button } from "../../../_components/Button";
 import Step1Location from "../_components/Step1Location";
@@ -270,31 +270,26 @@ export default function CreateFundraiserPage() {
         console.log("⏭️ [Create] Step 2: No images to upload");
       }
       
-      // Step 2: Convert metadata fields to bytes32
-      console.log("📝 [Create] Step 3: Converting metadata to bytes32...");
+      // Step 2: Use strings directly (no bytes32 conversion needed)
+      console.log("📝 [Create] Step 3: Preparing metadata as strings...");
       
-      // All metadata fields are bytes32 - convert and pad to exactly 32 bytes
-      const titleBytes32 = stringToBytes32(formData.campaignTitle || "");
-      const descriptionBytes32 = stringToBytes32(formData.description || "");
-      const locationBytes32 = stringToBytes32(formData.location || "");
-      const categoryBytes32 = stringToBytes32(formData.category || "");
+      // All metadata fields are now strings - use directly
+      const title = formData.campaignTitle || "";
+      const description = formData.description || "";
+      const location = formData.location || "";
+      const category = formData.category || "";
       
-      // Convert image publicIds array to bytes32 array
-      const imagesBytes32 = imagePublicIds.map(publicId => stringToBytes32(publicId));
+      // Images are string array
+      const images = imagePublicIds;
       
-      console.log("📦 [Create] Metadata converted to bytes32:", {
-        title: formData.campaignTitle,
-        titleBytes32,
-        description: formData.description,
-        descriptionBytes32,
-        descriptionLength: formData.description.length,
-        location: formData.location,
-        locationBytes32,
-        category: formData.category,
-        categoryBytes32,
-        imageCount: imagePublicIds.length,
-        imagePublicIds: imagePublicIds,
-        imagesBytes32: imagesBytes32.length,
+      console.log("📦 [Create] Metadata prepared:", {
+        title,
+        description,
+        descriptionLength: description.length,
+        location,
+        category,
+        imageCount: images.length,
+        imagePublicIds: images,
       });
       
       // Step 3: Convert goal amount to wei
@@ -309,16 +304,16 @@ export default function CreateFundraiserPage() {
       console.log("📋 [Create] Contract call details:", {
         contractName: "AquaFundFactory",
         functionName: "createProject",
-        functionSignature: "createProject(address admin, address creator, uint256 fundingGoal, bytes32 title, bytes32 description, bytes32[] images, bytes32 location, bytes32 category)",
+        functionSignature: "createProject(address admin, address creator, uint256 fundingGoal, string title, string description, string[] images, string location, string category)",
         args: {
           admin: address,
           creator: address, // Same as admin for now
           fundingGoal: goalAmountWei.toString(),
-          title: titleBytes32,
-          description: descriptionBytes32,
-          images: imagesBytes32,
-          location: locationBytes32,
-          category: categoryBytes32,
+          title,
+          description,
+          images,
+          location,
+          category,
         },
         network: targetNetwork.name,
         chainId: targetNetwork.id,
@@ -331,11 +326,11 @@ export default function CreateFundraiserPage() {
           address as `0x${string}`, // admin address
           address as `0x${string}`, // creator address
           goalAmountWei, // funding goal in wei
-          titleBytes32, // title as bytes32
-          descriptionBytes32, // description as bytes32
-          imagesBytes32, // images as bytes32[]
-          locationBytes32, // location as bytes32
-          categoryBytes32, // category as bytes32
+          title, // title as string
+          description, // description as string
+          images, // images as string[]
+          location, // location as string
+          category, // category as string
         ],
       });
       

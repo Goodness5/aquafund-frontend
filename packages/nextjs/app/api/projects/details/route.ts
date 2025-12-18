@@ -4,7 +4,7 @@ import { bscTestnet } from "viem/chains";
 import externalContracts from "~~/contracts/externalContracts";
 import AquaFundRegistryAbi from "~~/contracts/abis/AquaFundRegistry.json";
 import AquaFundProjectAbi from "~~/contracts/abis/AquaFundProject.json";
-import { bytes32ToString, bytes32ArrayToStringArray } from "~~/utils/bytes32";
+// Removed bytes32 conversions - ABIs now use strings directly
 
 export async function GET(req: NextRequest) {
   console.log("🚀 [API] Route handler called");
@@ -171,14 +171,14 @@ export async function GET(req: NextRequest) {
         );
       }
         
-        // Registry returns bytes32 for title, description, location, and category
-        const title = bytes32ToString(info.title);
-        const description = bytes32ToString(info.description);
-        const location = bytes32ToString(info.location);
-        const category = bytes32ToString(info.category);
+        // Registry now returns strings directly (no bytes32 conversion needed)
+        const title = info.title || "";
+        const description = info.description || "";
+        const location = info.location || "";
+        const category = info.category || "";
         
-        // Decode bytes32[] images array to strings
-        const imagePublicIds = bytes32ArrayToStringArray(info.images);
+        // Images are now string[] directly
+        const imagePublicIds = Array.isArray(info.images) ? info.images : [];
         
         // Reconstruct Cloudinary URLs from publicIds
         // publicId format stored: "fund/axn1o67h2bz9zieh9cop" (full publicId with folder)

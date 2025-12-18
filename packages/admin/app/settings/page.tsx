@@ -69,6 +69,12 @@ export default function SettingsPage() {
     functionName: "ADMIN_ROLE",
   });
 
+  const { data: registryAdminRole } = useReadContract({
+    address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+    abi: AquaFundRegistryAbi,
+    functionName: "DEFAULT_ADMIN_ROLE",
+  });
+
   const { data: viewerRole } = useReadContract({
     address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
     abi: AquaFundRegistryAbi,
@@ -224,53 +230,90 @@ export default function SettingsPage() {
       return;
     }
 
-    let role: `0x${string}`;
-    let contractAddress: `0x${string}`;
-    let abi: any;
-    let functionName: string;
+    let factoryRole: `0x${string}` | undefined;
+    let registryRole: `0x${string}` | undefined;
+    let factoryFunctionName: string = "grantRole";
+    let registryFunctionName: string = "grantRole";
+    let needsBothContracts = false;
 
     if (selectedRole === "admin") {
-      // Factory ADMIN_ROLE
-      contractAddress = externalContracts[97]?.AquaFundFactory?.address as `0x${string}`;
-      abi = AquaFundFactoryAbi;
-      functionName = "grantRole";
-      role = factoryAdminRoleAlt as `0x${string}`;
+      // Grant ADMIN_ROLE on both Factory and Registry
+      factoryRole = factoryAdminRoleAlt as `0x${string}`;
+      registryRole = factoryAdminRoleAlt as `0x${string}`; // Use same role bytes32
+      factoryFunctionName = "grantRole";
+      needsBothContracts = true;
     } else if (selectedRole === "defaultAdmin") {
-      // Factory DEFAULT_ADMIN_ROLE
-      contractAddress = externalContracts[97]?.AquaFundFactory?.address as `0x${string}`;
-      abi = AquaFundFactoryAbi;
-      functionName = "grantRole";
-      role = factoryAdminRole as `0x${string}`;
+      // Grant DEFAULT_ADMIN_ROLE on both Factory and Registry
+      factoryRole = factoryAdminRole as `0x${string}`;
+      registryRole = registryAdminRole as `0x${string}`; // Use Registry's DEFAULT_ADMIN_ROLE
+      factoryFunctionName = "grantRole";
+      needsBothContracts = true;
     } else if (selectedRole === "projectCreator") {
-      contractAddress = externalContracts[97]?.AquaFundFactory?.address as `0x${string}`;
-      abi = AquaFundFactoryAbi;
-      functionName = "grantProjectCreatorRole";
-      writeContract({
-        address: contractAddress,
-        abi,
-        functionName,
-        args: [roleAddress as `0x${string}`],
-      });
-      return;
+      // Grant PROJECT_CREATOR_ROLE on both Factory and Registry
+      factoryFunctionName = "grantProjectCreatorRole";
+      registryFunctionName = "grantRole";
+      registryRole = projectCreatorRole as `0x${string}`; // Use PROJECT_CREATOR_ROLE from Factory
+      needsBothContracts = true;
     } else {
-      // Viewer role is managed on Registry
-      contractAddress = externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`;
-      abi = AquaFundRegistryAbi;
-      functionName = "grantRole";
-      role = viewerRole as `0x${string}`;
+      // Viewer role is managed on Registry only
+      registryRole = viewerRole as `0x${string}`;
+      needsBothContracts = false;
     }
 
-    if (!role) {
-      toast.error("Role not loaded");
-      return;
-    }
+    if (needsBothContracts) {
+      // Grant role on Factory first
+      if (selectedRole === "projectCreator") {
+        // For projectCreator, use grantProjectCreatorRole on Factory
+        if (!projectCreatorRole) {
+          toast.error("Project creator role not loaded");
+          return;
+        }
+        writeContract({
+          address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+          abi: AquaFundFactoryAbi,
+          functionName: factoryFunctionName,
+          args: [roleAddress as `0x${string}`],
+        });
+      } else {
+        // For admin roles, use grantRole on Factory
+        if (!factoryRole) {
+          toast.error("Factory role not loaded");
+          return;
+        }
+        writeContract({
+          address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+          abi: AquaFundFactoryAbi,
+          functionName: factoryFunctionName,
+          args: [factoryRole, roleAddress as `0x${string}`],
+        });
+      }
 
-    writeContract({
-      address: contractAddress,
-      abi,
-      functionName,
-      args: [role, roleAddress as `0x${string}`],
-    });
+      // Then grant role on Registry (user will need to approve both transactions)
+      if (!registryRole) {
+        toast.error("Registry role not loaded");
+        return;
+      }
+      // Note: User will need to approve both transactions separately
+      writeContract({
+        address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+        abi: AquaFundRegistryAbi,
+        functionName: registryFunctionName,
+        args: [registryRole, roleAddress as `0x${string}`],
+      });
+      toast.success("Please approve both transactions: Factory and Registry");
+    } else {
+      // Only grant on Registry (viewer role)
+      if (!registryRole) {
+        toast.error("Role not loaded");
+        return;
+      }
+      writeContract({
+        address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+        abi: AquaFundRegistryAbi,
+        functionName: registryFunctionName,
+        args: [registryRole, roleAddress as `0x${string}`],
+      });
+    }
   };
 
   const handleUpdateTreasury = () => {
