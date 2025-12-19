@@ -316,6 +316,98 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRevokeRole = () => {
+    if (!roleAddress || !isAddress(roleAddress)) {
+      toast.error("Please enter a valid address");
+      return;
+    }
+
+    let factoryRole: `0x${string}` | undefined;
+    let registryRole: `0x${string}` | undefined;
+    let factoryFunctionName: string = "revokeRole";
+    let registryFunctionName: string = "revokeRole";
+    let needsBothContracts = false;
+
+    if (selectedRole === "admin") {
+      // Revoke ADMIN_ROLE on both Factory and Registry
+      factoryRole = factoryAdminRoleAlt as `0x${string}`;
+      registryRole = factoryAdminRoleAlt as `0x${string}`;
+      factoryFunctionName = "revokeRole";
+      needsBothContracts = true;
+    } else if (selectedRole === "defaultAdmin") {
+      // Revoke DEFAULT_ADMIN_ROLE on both Factory and Registry
+      factoryRole = factoryAdminRole as `0x${string}`;
+      registryRole = registryAdminRole as `0x${string}`;
+      factoryFunctionName = "revokeRole";
+      needsBothContracts = true;
+    } else if (selectedRole === "projectCreator") {
+      // Revoke PROJECT_CREATOR_ROLE on both Factory and Registry
+      factoryFunctionName = "revokeProjectCreatorRole";
+      registryFunctionName = "revokeRole";
+      registryRole = projectCreatorRole as `0x${string}`;
+      needsBothContracts = true;
+    } else {
+      // Viewer role is managed on Registry only
+      registryRole = viewerRole as `0x${string}`;
+      needsBothContracts = false;
+    }
+
+    if (needsBothContracts) {
+      // Revoke role on Factory first
+      if (selectedRole === "projectCreator") {
+        // For projectCreator, use revokeProjectCreatorRole on Factory
+        if (!projectCreatorRole) {
+          toast.error("Project creator role not loaded");
+          return;
+        }
+        writeContract({
+          address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+          abi: AquaFundFactoryAbi,
+          functionName: factoryFunctionName,
+          args: [roleAddress as `0x${string}`],
+        });
+      } else {
+        // For admin roles, use revokeRole on Factory
+        if (!factoryRole) {
+          toast.error("Factory role not loaded");
+          return;
+        }
+        writeContract({
+          address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+          abi: AquaFundFactoryAbi,
+          functionName: factoryFunctionName,
+          args: [factoryRole, roleAddress as `0x${string}`],
+        });
+      }
+
+      // Then revoke role on Registry (user will need to approve both transactions)
+      if (!registryRole) {
+        toast.error("Registry role not loaded");
+        return;
+      }
+      // Note: User will need to approve both transactions separately
+      writeContract({
+        address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+        abi: AquaFundRegistryAbi,
+        functionName: registryFunctionName,
+        args: [registryRole, roleAddress as `0x${string}`],
+      });
+      toast.success("Please approve both transactions: Factory and Registry");
+    } else {
+      // Only revoke on Registry (viewer role)
+      if (!registryRole) {
+        toast.error("Role not loaded");
+        return;
+      }
+      writeContract({
+        address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+        abi: AquaFundRegistryAbi,
+        functionName: registryFunctionName,
+        args: [registryRole, roleAddress as `0x${string}`],
+      });
+    }
+  };
+
   const handleUpdateTreasury = () => {
     if (!newTreasury || !isAddress(newTreasury)) {
       toast.error("Please enter a valid treasury address");
@@ -1014,6 +1106,42 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isWriting || isConfirming ? "Processing..." : "Grant Role"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Revoke Role</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#001627] mb-2">Role Type</label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] text-[#001627] bg-white placeholder:text-gray-400"
+                >
+                  <option value="admin">Admin Role (Factory) - ADMIN_ROLE on Factory</option>
+                  <option value="defaultAdmin">Default Admin Role (Factory) - DEFAULT_ADMIN_ROLE on Factory</option>
+                  <option value="projectCreator">Project Creator Role (Factory) - Can create projects</option>
+                  <option value="viewer">Viewer Role (Registry) - Can view projects</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#001627] mb-2">Address</label>
+                <input
+                  type="text"
+                  value={roleAddress}
+                  onChange={(e) => setRoleAddress(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono text-[#001627] bg-white placeholder:text-gray-400"
+                />
+              </div>
+              <button
+                onClick={handleRevokeRole}
+                disabled={!roleAddress || isWriting || isConfirming}
+                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isWriting || isConfirming ? "Processing..." : "Revoke Role"}
               </button>
             </div>
           </div>

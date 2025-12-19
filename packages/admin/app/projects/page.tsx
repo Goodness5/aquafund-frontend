@@ -37,10 +37,16 @@ export default function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
   const [registerProjectId, setRegisterProjectId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
 
   const { writeContract: writeRegistry, data: registerHash, isPending: isRegistering } = useWriteContract();
   const { isLoading: isConfirmingRegister, isSuccess: isRegisterConfirmed } = useWaitForTransactionReceipt({
     hash: registerHash,
+  });
+
+  const { writeContract: writeFactory, data: grantRoleHash, isPending: isGrantingRole } = useWriteContract();
+  const { isLoading: isConfirmingGrant, isSuccess: isGrantConfirmed } = useWaitForTransactionReceipt({
+    hash: grantRoleHash,
   });
 
   // Get all project IDs
@@ -73,13 +79,57 @@ export default function ProjectsPage() {
   // Ensure hasAdminRole is a boolean
   const hasAdminRole = Boolean(hasAdminRoleData);
 
+  // Get project details after registration to grant role
+  const { data: projectDetails, refetch: refetchProjectDetails } = useReadContract({
+    address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+    abi: AquaFundRegistryAbi,
+    functionName: "getProjectDetails",
+    args: pendingProjectId ? [BigInt(pendingProjectId)] : undefined,
+    query: {
+      enabled: isRegisterConfirmed && !!pendingProjectId,
+    },
+  });
+
   useEffect(() => {
-    if (isRegisterConfirmed) {
-      toast.success("Project registered successfully");
+    if (isRegisterConfirmed && pendingProjectId) {
+      // Store the project ID for fetching details
+      setPendingProjectId(pendingProjectId);
+      refetchProjectDetails();
+    }
+  }, [isRegisterConfirmed, pendingProjectId, refetchProjectDetails]);
+
+  useEffect(() => {
+    if (projectDetails && pendingProjectId) {
+      // Project registered, now grant PROJECT_CREATOR_ROLE to the project admin
+      // getProjectDetails returns a struct with info field
+      const projectInfo = (projectDetails as any)?.info || projectDetails;
+      const adminAddress = projectInfo?.admin;
+      
+      if (adminAddress && isAddress(adminAddress)) {
+        toast.loading("Granting PROJECT_CREATOR_ROLE to project admin...");
+        writeFactory({
+          address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+          abi: AquaFundFactoryAbi,
+          functionName: "grantProjectCreatorRole",
+          args: [adminAddress as `0x${string}`],
+        });
+      } else {
+        toast.success("Project registered successfully (admin address not found)");
+        refetchProjectIds();
+        setRegisterProjectId("");
+        setPendingProjectId(null);
+      }
+    }
+  }, [projectDetails, pendingProjectId, writeFactory, refetchProjectIds]);
+
+  useEffect(() => {
+    if (isGrantConfirmed) {
+      toast.success("Project registered and PROJECT_CREATOR_ROLE granted successfully");
       refetchProjectIds();
       setRegisterProjectId("");
+      setPendingProjectId(null);
     }
-  }, [isRegisterConfirmed, refetchProjectIds]);
+  }, [isGrantConfirmed, refetchProjectIds]);
 
   useEffect(() => {
     fetchProjects();
@@ -127,6 +177,7 @@ export default function ProjectsPage() {
 
     try {
       const projectId = BigInt(registerProjectId);
+      setPendingProjectId(registerProjectId);
       writeRegistry({
         address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
         abi: AquaFundRegistryAbi,
@@ -136,6 +187,7 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error("Failed to register project:", error);
       toast.error("Invalid project ID");
+      setPendingProjectId(null);
     }
   };
 
