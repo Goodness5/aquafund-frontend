@@ -21,19 +21,30 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const fileEntry = formData.get("file");
 
-    if (!file) {
+    if (!fileEntry) {
       return NextResponse.json(
         { error: "No file provided" },
         { status: 400 }
       );
     }
 
-    // Check file size (5MB limit)
-    if (file.size > MAX_FILE_SIZE) {
+    // Ensure we have a File or Blob object
+    if (!(fileEntry instanceof File) && !(fileEntry instanceof Blob)) {
       return NextResponse.json(
-        { error: `File size exceeds 5MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB. Please compress or resize the image.` },
+        { error: "Invalid file type. Expected File or Blob." },
+        { status: 400 }
+      );
+    }
+
+    const file = fileEntry as File | Blob;
+
+    // Check file size (5MB limit) - File has size property, Blob might not
+    const fileSize = file instanceof File ? file.size : (file as any).size || 0;
+    if (fileSize > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File size exceeds 5MB limit. Your file is ${(fileSize / 1024 / 1024).toFixed(2)}MB. Please compress or resize the image.` },
         { status: 400 }
       );
     }
@@ -43,7 +54,9 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Convert buffer to base64 string for Cloudinary
-    const base64String = `data:${file.type};base64,${buffer.toString("base64")}`;
+    // Get file type - File has type property, Blob might not
+    const fileType = file instanceof File ? file.type : (file as any).type || "image/jpeg";
+    const base64String = `data:${fileType};base64,${buffer.toString("base64")}`;
 
     // Get folder from form data (default to ngo-documents for backward compatibility)
     const folder = (formData.get("folder") as string) || "aquafund/ngo-documents";
