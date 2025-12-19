@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import externalContracts from "../../contracts/externalContracts";
 import AquaFundRegistryAbi from "../../contracts/abis/AquaFundRegistry.json";
+import AquaFundFactoryAbi from "../../contracts/abis/AquaFundFactory.json";
 
 interface NGO {
   id: string;
@@ -54,11 +55,16 @@ export default function NGOPage() {
   const [showModal, setShowModal] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  const { writeContract, data: hash, isPending: isWriting } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
+  // Separate hooks for Factory and Registry role grants
+  const { writeContract: writeFactory, data: factoryHash, isPending: isGrantingFactory } = useWriteContract();
+  const { isLoading: isConfirmingFactory, isSuccess: isFactoryConfirmed } = useWaitForTransactionReceipt({
+    hash: factoryHash,
+  });
+
+  const { writeContract: writeRegistry, data: registryHash, isPending: isGrantingRegistry } = useWriteContract();
+  const { isLoading: isConfirmingRegistry, isSuccess: isRegistryConfirmed } = useWaitForTransactionReceipt({
+    hash: registryHash,
+  });
 
   // Get DEFAULT_ADMIN_ROLE and VIEWER_ROLE constants
   const { data: adminRole } = useReadContract({
@@ -91,12 +97,32 @@ export default function NGOPage() {
     fetchNGOs();
   }, []);
 
+  // Handle Factory role grant confirmation - then grant on Registry
   useEffect(() => {
-    if (isConfirmed && approvingId) {
-      handleApproveBackend(approvingId, hash!);
+    if (isFactoryConfirmed && approvingId) {
+      const ngo = ngos.find((n) => n.id === approvingId);
+      if (ngo && ngo.connectedWallet) {
+        toast.loading("Granting PROJECT_CREATOR_ROLE on Registry...");
+        writeRegistry({
+          address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
+          abi: AquaFundRegistryAbi,
+          functionName: "grantRole",
+          args: [
+            "0xa91575122619884f8f346f6f08d276f996bc367457e1cf69df01d9361cf4e0f1" as `0x${string}`,
+            ngo.connectedWallet as `0x${string}`,
+          ],
+        });
+      }
+    }
+  }, [isFactoryConfirmed, approvingId, ngos, writeRegistry]);
+
+  // Handle Registry role grant confirmation - then update backend
+  useEffect(() => {
+    if (isRegistryConfirmed && approvingId && registryHash) {
+      handleApproveBackend(approvingId, registryHash);
       setApprovingId(null);
     }
-  }, [isConfirmed, hash, approvingId]);
+  }, [isRegistryConfirmed, registryHash, approvingId]);
 
   const fetchNGOs = async () => {
     try {
@@ -141,23 +167,21 @@ export default function NGOPage() {
       return;
     }
 
-    if (!viewerRole) {
-      alert("Unable to get VIEWER_ROLE. Please try again.");
+    if (!isAddress(ngo.connectedWallet)) {
+      alert("Invalid NGO wallet address");
       return;
     }
 
     try {
       setApprovingId(ngo.id);
+      toast.loading("Granting PROJECT_CREATOR_ROLE on Factory...");
       
-      // Call smart contract to grant VIEWER_ROLE to the NGO
-      writeContract({
-        address: externalContracts[97]?.AquaFundRegistry?.address as `0x${string}`,
-        abi: AquaFundRegistryAbi,
-        functionName: "grantRole",
-        args: [
-          viewerRole as `0x${string}`,
-          ngo.connectedWallet as `0x${string}`,
-        ],
+      // First grant PROJECT_CREATOR_ROLE on Factory
+      writeFactory({
+        address: externalContracts[97]?.AquaFundFactory?.address as `0x${string}`,
+        abi: AquaFundFactoryAbi,
+        functionName: "grantProjectCreatorRole",
+        args: [ngo.connectedWallet as `0x${string}`],
       });
     } catch (error) {
       console.error("Failed to approve:", error);
@@ -356,11 +380,11 @@ export default function NGOPage() {
                         <>
                           <button
                             onClick={() => handleApprove(ngo)}
-                            disabled={!isConnected || !hasAdminRole || approvingId === ngo.id || isWriting || isConfirming}
+                            disabled={!isConnected || !hasAdminRole || approvingId === ngo.id || isGrantingFactory || isConfirmingFactory || isGrantingRegistry || isConfirmingRegistry}
                             className="text-green-600 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Approve NGO"
                           >
-                            {approvingId === ngo.id && (isWriting || isConfirming) ? (
+                            {approvingId === ngo.id && (isGrantingFactory || isConfirmingFactory || isGrantingRegistry || isConfirmingRegistry) ? (
                               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
                             ) : (
                               <CheckCircleIcon className="h-5 w-5" />

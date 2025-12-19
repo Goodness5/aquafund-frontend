@@ -41,12 +41,20 @@ export async function GET(
       // Try to get error message from response
       let errorMessage = "Failed to fetch NGO";
       try {
-        const errorData = await res.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
-        console.error("Backend error:", errorData);
-      } catch {
+        // Read as text first to avoid body consumption issues
         const text = await res.text();
-        console.error("Backend error (non-JSON):", text.substring(0, 200));
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error("Backend error:", errorData);
+        } catch {
+          // Not JSON, use text as error message
+          console.error("Backend error (non-JSON):", text.substring(0, 200));
+          errorMessage = text.substring(0, 200) || errorMessage;
+        }
+      } catch {
+        // If we can't read the body at all, use default message
+        console.error("Could not read error response body");
       }
       
       return NextResponse.json(
