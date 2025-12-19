@@ -55,7 +55,7 @@ export async function requestAuthChallenge(
   address: Address,
   backendUrl: string
 ): Promise<AuthChallenge> {
-  const response = await fetch(`${backendUrl}/api/auth/challenge`, {
+  const response = await fetch(`https://aquafund.koyeb.app/api/auth/challenge`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -88,7 +88,7 @@ export async function verifySignature(
   message: string,
   backendUrl: string
 ): Promise<AuthToken> {
-  const response = await fetch(`${backendUrl}/api/auth/verify`, {
+  const response = await fetch(`https://aquafund.koyeb.app/api/auth/verify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -123,7 +123,7 @@ export async function refreshAuthToken(
   currentToken: string,
   backendUrl: string
 ): Promise<AuthToken> {
-  const response = await fetch(`${backendUrl}/api/auth/refresh`, {
+  const response = await fetch(`https://aquafund.koyeb.app/api/auth/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

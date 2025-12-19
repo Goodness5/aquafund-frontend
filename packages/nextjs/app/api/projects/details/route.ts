@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
         // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/{publicId}
         // Note: Cloudinary URLs work without file extension, the publicId is enough
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dqn6hax4c";
-        const images = imagePublicIds.map((publicId) => {
+        const images = imagePublicIds.map((publicId: string) => {
           // publicId already includes folder (e.g., "fund/axn1o67h2bz9zieh9cop")
           // Cloudinary will serve the image with the correct format based on the upload
           return `https://res.cloudinary.com/${cloudName}/image/upload/${publicId}`;

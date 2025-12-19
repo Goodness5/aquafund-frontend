@@ -29,24 +29,24 @@ const formatAddress = (address: `0x${string}`) => {
 export default function SettingsPage() {
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<"overview" | "factory" | "registry" | "badge" | "projects">("overview");
-  
+
   // Role management
   const [roleAddress, setRoleAddress] = useState("");
   const [selectedRole, setSelectedRole] = useState<"admin" | "defaultAdmin" | "viewer" | "projectCreator">("admin");
-  
+
   // Factory settings
   const [newTreasury, setNewTreasury] = useState("");
   const [newServiceFee, setNewServiceFee] = useState("");
   const [newBadgeContract, setNewBadgeContract] = useState("");
   const [newRegistry, setNewRegistry] = useState("");
-  
+
   // Token management
   const [tokenAddress, setTokenAddress] = useState("");
-  
+
   // Badge settings
   const [newBaseURI, setNewBaseURI] = useState("");
   const [badgeMinterAddress, setBadgeMinterAddress] = useState("");
-  
+
   // Project settings
   const [selectedProjectAddress, setSelectedProjectAddress] = useState("");
   const [newProjectStatus, setNewProjectStatus] = useState<"0" | "1" | "2">("0");
@@ -252,7 +252,8 @@ export default function SettingsPage() {
       // Grant PROJECT_CREATOR_ROLE on both Factory and Registry
       factoryFunctionName = "grantProjectCreatorRole";
       registryFunctionName = "grantRole";
-      registryRole = projectCreatorRole as `0x${string}`; // Use PROJECT_CREATOR_ROLE from Factory
+      // Registry uses a different PROJECT_CREATOR_ROLE hash than Factory
+      registryRole = "0xa91575122619884f8f346f6f08d276f996bc367457e1cf69df01d9361cf4e0f1" as `0x${string}`;
       needsBothContracts = true;
     } else {
       // Viewer role is managed on Registry only
@@ -344,7 +345,8 @@ export default function SettingsPage() {
       // Revoke PROJECT_CREATOR_ROLE on both Factory and Registry
       factoryFunctionName = "revokeProjectCreatorRole";
       registryFunctionName = "revokeRole";
-      registryRole = projectCreatorRole as `0x${string}`;
+      // Registry uses a different PROJECT_CREATOR_ROLE hash than Factory
+      registryRole = "0xa91575122619884f8f346f6f08d276f996bc367457e1cf69df01d9361cf4e0f1" as `0x${string}`;
       needsBothContracts = true;
     } else {
       // Viewer role is managed on Registry only
@@ -689,55 +691,50 @@ export default function SettingsPage() {
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`${
-              activeTab === "overview"
+            className={`${activeTab === "overview"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-[#001627] hover:text-[#0350B5] hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <InformationCircleIcon className="w-5 h-5" />
             Overview
           </button>
           <button
             onClick={() => setActiveTab("factory")}
-            className={`${
-              activeTab === "factory"
+            className={`${activeTab === "factory"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-[#001627] hover:text-[#0350B5] hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <Cog6ToothIcon className="w-5 h-5" />
             Factory (Global)
           </button>
           <button
             onClick={() => setActiveTab("registry")}
-            className={`${
-              activeTab === "registry"
+            className={`${activeTab === "registry"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-[#001627] hover:text-[#0350B5] hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <KeyIcon className="w-5 h-5" />
             Registry (Roles)
           </button>
           <button
             onClick={() => setActiveTab("badge")}
-            className={`${
-              activeTab === "badge"
+            className={`${activeTab === "badge"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-[#001627] hover:text-[#0350B5] hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <Cog6ToothIcon className="w-5 h-5" />
             Badge (NFT)
           </button>
           <button
             onClick={() => setActiveTab("projects")}
-            className={`${
-              activeTab === "projects"
+            className={`${activeTab === "projects"
                 ? "border-[#0350B5] text-[#0350B5]"
                 : "border-transparent text-[#001627] hover:text-[#0350B5] hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
           >
             <BuildingOfficeIcon className="w-5 h-5" />
             Projects (Instances)
@@ -979,11 +976,10 @@ export default function SettingsPage() {
                 <button
                   onClick={handleToggleAllowAllTokens}
                   disabled={isWriting || isConfirming}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    allowAllTokensValue
+                  className={`px-4 py-2 rounded-lg transition-colors ${allowAllTokensValue
                       ? "bg-[#0350B5] text-white hover:bg-[#034093]"
                       : "bg-gray-200 text-[#001627] hover:bg-gray-300"
-                  } disabled:opacity-50`}
+                    } disabled:opacity-50`}
                 >
                   {allowAllTokensValue ? "Enabled" : "Disabled"}
                 </button>
@@ -1106,42 +1102,6 @@ export default function SettingsPage() {
                 className="w-full px-4 py-2 bg-[#0350B5] text-white rounded-lg hover:bg-[#034093] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isWriting || isConfirming ? "Processing..." : "Grant Role"}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Revoke Role</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#001627] mb-2">Role Type</label>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] text-[#001627] bg-white placeholder:text-gray-400"
-                >
-                  <option value="admin">Admin Role (Factory) - ADMIN_ROLE on Factory</option>
-                  <option value="defaultAdmin">Default Admin Role (Factory) - DEFAULT_ADMIN_ROLE on Factory</option>
-                  <option value="projectCreator">Project Creator Role (Factory) - Can create projects</option>
-                  <option value="viewer">Viewer Role (Registry) - Can view projects</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#001627] mb-2">Address</label>
-                <input
-                  type="text"
-                  value={roleAddress}
-                  onChange={(e) => setRoleAddress(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0350B5] font-mono text-[#001627] bg-white placeholder:text-gray-400"
-                />
-              </div>
-              <button
-                onClick={handleRevokeRole}
-                disabled={!roleAddress || isWriting || isConfirming}
-                className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isWriting || isConfirming ? "Processing..." : "Revoke Role"}
               </button>
             </div>
           </div>
@@ -1289,13 +1249,12 @@ export default function SettingsPage() {
                           {project.fundsRaised ? `${(Number(project.fundsRaised) / 1e18).toFixed(2)} ETH` : "N/A"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            project.status === 0 
-                              ? "bg-green-100 text-green-800" 
-                              : project.status === 1 
-                              ? "bg-blue-100 text-blue-800" 
-                              : "bg-red-100 text-red-800"
-                          }`}>
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${project.status === 0
+                              ? "bg-green-100 text-green-800"
+                              : project.status === 1
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-red-100 text-red-800"
+                            }`}>
                             {project.status === 0 ? "Active" : project.status === 1 ? "Completed" : "Cancelled"}
                           </span>
                         </td>
