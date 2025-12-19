@@ -91,11 +91,11 @@ export function ProjectDataProvider({ children }: { children: ReactNode }) {
         fundingGoal: result.info.fundingGoal,
         fundsRaised: result.info.fundsRaised,
         status: result.info.status,
-        donorCount: result.donorCount || 0,
-        donationCount: result.donationCount || 0,
+        donorCount: result.info.donorCount || 0,
+        donationCount: result.info.donationCount || 0,
         createdAt: result.info.createdAt,
         updatedAt: result.info.updatedAt,
-        projectAddress: projectAddr,
+        projectAddress: projectAddr || result.info.projectAddress,
       };
 
       // Cache the data

@@ -9,10 +9,7 @@ import { ProjectCard } from "../_components/ProjectCard";
 import FundraisingBenefits from "../_components/fundraising/FundraisingBenefits";
 import DonationModal from "../_components/DonationModal";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth/useScaffoldReadContract";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth/useScaffoldWriteContract";
-import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
-import { useProjectData } from "~~/contexts/ProjectDataContext";
 import { parseEther } from "viem";
 
 interface Project {
@@ -28,8 +25,6 @@ interface Project {
 }
 
 export default function ProjectsPage() {
-  const { targetNetwork } = useTargetNetwork();
-  const { fetchProject } = useProjectData();
   const { writeContractAsync: writeProject } = useScaffoldWriteContract({ contractName: "AquaFundProject" });
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,126 +38,50 @@ export default function ProjectsPage() {
   });
   const [donating, setDonating] = useState(false);
 
-  // Get all project IDs from registry
-  const { data: allProjectIds, isLoading: isLoadingIds, error: projectIdsError } = (useScaffoldReadContract as any)({
-    contractName: "AquaFundRegistry",
-    functionName: "getAllProjectIds",
-    chainId: targetNetwork.id,
-  } as any);
-
-  // Debug logging
+  // Fetch all projects from the API endpoint
   useEffect(() => {
-    console.log("Projects fetch state:", {
-      allProjectIds,
-      isLoadingIds,
-      error: projectIdsError,
-      targetNetwork: targetNetwork.id,
-    });
-  }, [allProjectIds, isLoadingIds, projectIdsError, targetNetwork]);
-
-  // Fetch project details for each project ID directly from contract
-  useEffect(() => {
-    if (isLoadingIds) {
-      return; // Still loading
-    }
-
-    if (projectIdsError) {
-      console.error("Error fetching project IDs:", projectIdsError);
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-
-    if (!allProjectIds) {
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-
-    // Check if allProjectIds is an array
-    if (!Array.isArray(allProjectIds)) {
-      console.warn("allProjectIds is not an array:", allProjectIds);
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-
-    if (allProjectIds.length === 0) {
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch project details for each project ID - Step by step: ID -> Address -> Details
-    const fetchProjectDetails = async () => {
+    const fetchAllProjects = async () => {
       try {
         setLoading(true);
-        console.log("🔄 [Projects] Starting to fetch project details...");
+        console.log("🔄 [Projects] Fetching all projects from API...");
         
-        const projectPromises = (allProjectIds as bigint[]).slice(0, 50).map(async (projectId) => {
-          try {
-            const projectIdStr = projectId.toString();
-            console.log(`📋 [Projects] Fetching project ${projectIdStr}...`);
-            
-            // Step 1: Get project address from Factory
-            const addressResponse = await fetch(`/api/projects/address?projectId=${projectIdStr}`);
-            if (!addressResponse.ok) {
-              console.warn(`⚠️ [Projects] Failed to get address for project ${projectIdStr}`);
-              return null;
-            }
-            const addressData = await addressResponse.json();
-            const projectAddress = addressData.address;
-            
-            if (!projectAddress || projectAddress === "0x0000000000000000000000000000000000000000") {
-              console.warn(`⚠️ [Projects] Invalid address for project ${projectIdStr}`);
-              return null;
-            }
-            
-            console.log(`✅ [Projects] Got address for project ${projectIdStr}: ${projectAddress}`);
-            
-            // Step 2: Get full project details using ID and Address
-            const detailsResponse = await fetch(
-              `/api/projects/details?projectId=${projectIdStr}&projectAddress=${projectAddress}`
-            );
-            if (!detailsResponse.ok) {
-              console.warn(`⚠️ [Projects] Failed to get details for project ${projectIdStr}`);
-              return null;
-            }
-            
-            const detailsData = await detailsResponse.json();
-            const info = detailsData.info;
-            
-            console.log(`✅ [Projects] Got details for project ${projectIdStr}:`, {
-              title: info.title,
-              hasImages: info.images?.length > 0,
-              raised: info.fundsRaised,
-              goal: info.fundingGoal,
-            });
-            
-            // Step 3: Build project object with real data
-            return {
-              id: Number(projectId),
-              title: info.title && info.title !== "N/A" ? info.title : `Project #${projectIdStr}`,
-              donations: detailsData.donationCount || 0,
-              image: info.images && info.images.length > 0 ? info.images[0] : "/Home.png",
-              raised: Number(formatEther(BigInt(info.fundsRaised || "0"))),
-              goal: Number(formatEther(BigInt(info.fundingGoal || "0"))),
-              description: info.description && info.description !== "N/A" ? info.description : `Project ${projectIdStr}`,
-              projectAddress: projectAddress,
-              organizerName: info.creator || info.admin,
-            };
-          } catch (error) {
-            console.error(`❌ [Projects] Failed to fetch project ${projectId}:`, error);
-            return null;
-          }
+        // Call the API endpoint that returns all projects
+        const response = await fetch("/api/projects/details");
+        if (!response.ok) {
+          console.error("❌ [Projects] Failed to fetch projects:", response.statusText);
+          setProjects([]);
+          setLoading(false);
+          return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data.projects || !Array.isArray(data.projects)) {
+          console.warn("⚠️ [Projects] Invalid response format:", data);
+          setProjects([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Map API response to Project interface
+        const mappedProjects: Project[] = data.projects.map((project: any) => {
+          const info = project.info;
+          return {
+            id: Number(info.projectId),
+            title: info.title && info.title !== "N/A" ? info.title : `Project #${info.projectId}`,
+            donations: info.donationCount || 0,
+            image: info.images && info.images.length > 0 ? info.images[0] : "/Home.png",
+            raised: Number(formatEther(BigInt(info.fundsRaised || "0"))),
+            goal: Number(formatEther(BigInt(info.fundingGoal || "0"))),
+            description: info.description && info.description !== "N/A" ? info.description : `Project ${info.projectId}`,
+            projectAddress: info.projectAddress,
+            organizerName: info.creator || info.admin,
+          };
         });
-
-        const results = await Promise.all(projectPromises);
-        const validProjects = results.filter((p) => p !== null) as Project[];
         
-        console.log(`✅ [Projects] Successfully fetched ${validProjects.length} projects`);
-        console.log(`📊 [Projects] Sample project data:`, validProjects[0]);
-        setProjects(validProjects);
+        console.log(`✅ [Projects] Successfully fetched ${mappedProjects.length} projects`);
+        console.log(`📊 [Projects] Sample project data:`, mappedProjects[0]);
+        setProjects(mappedProjects);
       } catch (error) {
         console.error("❌ [Projects] Failed to fetch projects:", error);
         setProjects([]);
@@ -171,8 +90,8 @@ export default function ProjectsPage() {
       }
     };
 
-    fetchProjectDetails();
-  }, [allProjectIds, isLoadingIds, projectIdsError]);
+    fetchAllProjects();
+  }, []);
 
   // Extract unique countries from projects
   const countries = useMemo(() => {

@@ -30,18 +30,76 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure we have a File or Blob object
-    if (!(fileEntry instanceof File) && !(fileEntry instanceof Blob)) {
+    // Convert fileEntry to File or Blob, then to buffer
+    let buffer: Buffer;
+    let fileSize: number;
+    let fileType: string;
+
+    try {
+      // Handle File instance
+      if (fileEntry instanceof File) {
+        fileSize = fileEntry.size;
+        fileType = fileEntry.type || "image/jpeg";
+        const bytes = await fileEntry.arrayBuffer();
+        buffer = Buffer.from(bytes);
+      }
+      // Handle Blob instance (check if it's a Blob-like object)
+      else if (fileEntry && typeof (fileEntry as any).arrayBuffer === 'function' && typeof (fileEntry as any).size === 'number') {
+        const blobEntry = fileEntry as any;
+        fileSize = blobEntry.size;
+        fileType = blobEntry.type || "image/jpeg";
+        const bytes = await blobEntry.arrayBuffer();
+        buffer = Buffer.from(bytes);
+      }
+      // Handle other types (Next.js might return different types)
+      else {
+        // Try to get the file as a blob using Response
+        const blob = fileEntry as any;
+        
+        // If it has a stream method, use it
+        if (blob.stream && typeof blob.stream === 'function') {
+          const stream = blob.stream();
+          const reader = stream.getReader();
+          const chunks: Uint8Array[] = [];
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+          
+          // Combine chunks into single buffer
+          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+          const combined = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            combined.set(chunk, offset);
+            offset += chunk.length;
+          }
+          
+          buffer = Buffer.from(combined);
+          fileSize = buffer.length;
+          fileType = blob.type || "image/jpeg";
+        }
+        // Try to convert using Response API (most reliable fallback)
+        else {
+          // Use Response to convert any file-like object to a buffer
+          const response = new Response(blob);
+          const bytes = await response.arrayBuffer();
+          buffer = Buffer.from(bytes);
+          fileSize = buffer.length;
+          fileType = blob.type || (blob as any).mimeType || "image/jpeg";
+        }
+      }
+    } catch (error) {
+      console.error("Error processing file:", error);
       return NextResponse.json(
-        { error: "Invalid file type. Expected File or Blob." },
+        { error: `Failed to process file: ${error instanceof Error ? error.message : "Unknown error"}` },
         { status: 400 }
       );
     }
 
-    const file = fileEntry as File | Blob;
-
-    // Check file size (5MB limit) - File has size property, Blob might not
-    const fileSize = file instanceof File ? file.size : (file as any).size || 0;
+    // Check file size (5MB limit)
     if (fileSize > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: `File size exceeds 5MB limit. Your file is ${(fileSize / 1024 / 1024).toFixed(2)}MB. Please compress or resize the image.` },
@@ -49,13 +107,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // Convert buffer to base64 string for Cloudinary
-    // Get file type - File has type property, Blob might not
-    const fileType = file instanceof File ? file.type : (file as any).type || "image/jpeg";
     const base64String = `data:${fileType};base64,${buffer.toString("base64")}`;
 
     // Get folder from form data (default to ngo-documents for backward compatibility)
