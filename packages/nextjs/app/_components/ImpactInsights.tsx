@@ -2,11 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { FadeInSection } from "./FadeInSection";
-import { json } from "d3-fetch";
-import { geoMercator, geoPath } from "d3-geo";
-import type { FeatureCollection } from "geojson";
-import { feature } from "topojson-client";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import WorldMap from "@/components/ui/world-map";
 
 /* -------------------------------------------------
    1. Our countries
@@ -80,91 +77,59 @@ const countries: Country[] = [
 ];
 
 /* -------------------------------------------------
-   2. Numeric ID → ISO-3 (from ISO 3166-1 numeric)
+   2. Generate map connections from countries with projects
    ------------------------------------------------- */
-const numericIdToIso3: Record<string, string> = {
-  "124": "CAN", // Canada
-  "076": "BRA", // Brazil
-  "276": "DEU", // Germany
-  "562": "NER", // Niger
-  "148": "TCD", // Chad
-  "356": "IND", // India
-  "036": "AUS", // Australia
-  // Add more if needed
+const generateMapDots = () => {
+  const countriesWithProjects = countries.filter(c => c.projects > 0);
+  const dots: Array<{
+    start: { lat: number; lng: number; label?: string };
+    end: { lat: number; lng: number; label?: string };
+  }> = [];
+
+  // Create connections between countries with projects
+  // Connect each country to the next one in a chain
+  for (let i = 0; i < countriesWithProjects.length - 1; i++) {
+    const current = countriesWithProjects[i];
+    const next = countriesWithProjects[i + 1];
+    dots.push({
+      start: {
+        lat: current.coordinates[1], // lat is second in [lon, lat]
+        lng: current.coordinates[0], // lng is first in [lon, lat]
+        label: current.name,
+      },
+      end: {
+        lat: next.coordinates[1],
+        lng: next.coordinates[0],
+        label: next.name,
+      },
+    });
+  }
+
+  // Also create some cross-connections for visual interest
+  if (countriesWithProjects.length > 2) {
+    // Connect first to third
+    dots.push({
+      start: {
+        lat: countriesWithProjects[0].coordinates[1],
+        lng: countriesWithProjects[0].coordinates[0],
+      },
+      end: {
+        lat: countriesWithProjects[2].coordinates[1],
+        lng: countriesWithProjects[2].coordinates[0],
+      },
+    });
+  }
+
+  return dots;
 };
-
-/* -------------------------------------------------
-   3. ISO-3 → Color
-   ------------------------------------------------- */
-const iso3ToColor: Record<string, string> = Object.fromEntries(countries.map(c => [c.iso3, c.color]));
-
-/* -------------------------------------------------
-   4. Flag helper
-   ------------------------------------------------- */
-const getFlagUrl = (iso3: string) => {
-  const map: Record<string, string> = {
-    CAN: "ca",
-    BRA: "br",
-    DEU: "de",
-    NER: "ne",
-    TCD: "td",
-    IND: "in",
-    AUS: "au",
-  };
-  return `https://flagcdn.com/24x18/${map[iso3] || iso3.toLowerCase().slice(0, 2)}.png`;
-};
-
-/* -------------------------------------------------
-   5. Constants
-   ------------------------------------------------- */
-const WORLD_GEOJSON = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
-const MAP_WIDTH = 910;
-const MAP_HEIGHT = 430;
-const POPUP_OFFSET = { x: 0, y: -28 };
 
 export function ImpactInsights() {
-  const [worldData, setWorldData] = useState<FeatureCollection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mapDots = generateMapDots();
 
   /* -------------------------------------------------
-     6. Load & Convert TopoJSON
-     ------------------------------------------------- */
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const topo: any = await json(WORLD_GEOJSON);
-        const geo = feature(topo, topo.objects.countries) as unknown as FeatureCollection;
-
-        // LOG EVERY COUNTRY
-        geo.features.forEach((f: any) => {
-          const id = f.id?.toString();
-          const name = f.properties?.name || "Unknown";
-          const iso3 = numericIdToIso3[id];
-          const color = iso3 ? iso3ToColor[iso3] : null;
-
-          if (color) {
-            console.log(`FILL → ${name} (id: ${id}) → ${iso3} → ${color}`);
-          } else {
-            console.log(`NO COLOR → ${name} (id: ${id})`);
-          }
-        });
-
-        setWorldData(geo);
-      } catch (e) {
-        console.error("Failed to load map:", e);
-        setError("Map failed to load.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  /* -------------------------------------------------
-     7. Close dropdown
+     6. Close dropdown
      ------------------------------------------------- */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -176,152 +141,59 @@ export function ImpactInsights() {
     return () => document.removeEventListener("mousedown", handler);
   }, [showDropdown]);
 
-  /* -------------------------------------------------
-     8. Projection – centered
-     ------------------------------------------------- */
-  const projection = geoMercator()
-    .scale(145)
-    .center([0, 20])
-    .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]);
-
-  const pathGen = geoPath().projection(projection);
-  const project = (lon: number, lat: number) => projection([lon, lat]) ?? null;
-
   return (
-    <section id="impact" className="bg-[#FFFDFA] text-[#001627] py-16 md:py-20">
-      <div className="container mx-auto px-4 md:px-8">
-        {/* Header */}
-        <FadeInSection className="mb-8">
-          <div className="flex flex-col mb-3">
-            <h2 className="text-3xl md:text-4xl font-semibold text-[#001627] mb-2">Did You Know?</h2>
-            <p className="text-lg md:text-xl text-[#001627] font-medium">
-              About 700 million people lack basic access to clean and safe drinking water.
-            </p>
+    <section id="impact" className="bg-[#000B28] text-[#E1FFFF] relative" style={{ width: '100%'}}>
+      {/* ---------- Map (wrapper) with overlay elements ---------- */}
+      <FadeInSection className="w-full">
+        <div className="relative w-full">
+          {/* ---- MAP ---- */}
+          <div className="relative z-0 w-full">
+            <WorldMap dots={mapDots} lineColor="#0ea5e9" />
           </div>
-        </FadeInSection>
 
-        {/* ---------- Map (wrapper + SVG) ---------- */}
-        <FadeInSection>
-          <div className="flex justify-center p-2">
-            {loading ? (
-              <div className="h-[430px] w-full max-w-[920px] flex items-center justify-center bg-white rounded-xl">
-                Loading map...
-              </div>
-            ) : error ? (
-              <div className="h-[430px] w-full max-w-[920px] flex items-center justify-center bg-white rounded-xl text-red-600">
-                {error}
-              </div>
-            ) : (
-              worldData && (
-                <>
-                  {/* ---- MAP (low z-index) ---- */}
-                  <div className="relative z-0 w-full p-4 mt-8">
-                    <svg
-                      width={MAP_WIDTH}
-                      height={MAP_HEIGHT}
-                      viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-                      className="block w-full h-auto bg-[#FFFDFA] "
-                    >
-                      {/* ---- Countries ---- */}
-                      {worldData.features.map((f: any, i) => {
-                        const id = f.id?.toString();
-                        const iso3 = numericIdToIso3[id];
-                        const fill = iso3 ? iso3ToColor[iso3] : "#E5E7EB";
+          {/* Header - Top Left Overlay */}
+          <div className="absolute top-0 left-0 z-10 p-4 md:p-8">
+            <div className="flex flex-col relative">
+              <h2 className="text-3xl md:text-4xl font-semibold text-white mb-2">Did You Know?</h2>
+              <p className="text-lg md:text-xl text-[#E1FFFF] font-medium mb-4">
+                About 700 million people lack basic access to clean and safe drinking water.
+              </p>
+              <div className="relative w-fit" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowDropdown(v => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 border border-white rounded-lg bg-white text-[#000B28] hover:bg-gray-100 text-sm font-medium min-w-[140px]"
+                >
+                  Explore by Country
+                  <ChevronDownIcon className="h-4 w-4" />
+                </button>
 
-                        return (
-                          <path key={f.id ?? i} d={pathGen(f) ?? ""} fill={fill} stroke="#F4F4F7" strokeWidth={0.7} />
-                        );
-                      })}
-
-                      {/* ---- Markers ---- */}
-                      {countries
-                        .filter(c => c.projects > 0)
-                        .map(country => {
-                          const pos = project(country.coordinates[0], country.coordinates[1]);
-                          if (!pos) return null;
-                          const [x, y] = pos;
-
-                          return (
-                            <g key={country.iso3} transform={`translate(${x},${y + POPUP_OFFSET.y})`}>
-                              <foreignObject width="100" height="44" x="-50" y="-44">
-                                <div className="flex items-center gap-1.5 bg-white/96 rounded-lg px-2 py-1.5 shadow-md text-xs">
-                                  <div
-                                    className="w-6 h-6 rounded flex items-center justify-center"
-                                    style={{ background: country.color }}
-                                  >
-                                    <img src={getFlagUrl(country.iso3)} alt="" className="w-5 h-4 rounded" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-[#475068]">{country.name}</span>
-                                    <div className="flex gap-2 text-[#294056] font-medium">
-                                      <span className="flex items-center gap-0.5">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                          <path
-                                            d="M5 21V19M19 21V19M3 11L12 3L21 11V19A2 2 0 0 1 19 21H5A2 2 0 0 1 3 19V11Z"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                          />
-                                        </svg>
-                                        {country.projects}
-                                      </span>
-                                      <span className="flex items-center gap-0.5">
-                                        <svg width="12" height="12" viewBox="0 0 20 20" fill="none">
-                                          <path
-                                            d="M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 7a7 7 0 1 0-14 0"
-                                            stroke="currentColor"
-                                            strokeWidth="1.5"
-                                          />
-                                        </svg>
-                                        {country.people.toLocaleString()}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </foreignObject>
-                            </g>
-                          );
-                        })}
-                    </svg>
-                  </div>
-
-                  {/* ---- DROPDOWN (high z-index, rendered AFTER map) ---- */}
-                  <div className="absolute top-0 left-0 right-0 flex justify-between items-start my-[4] pointer-events-none">
-                    <div className="pointer-events-auto relative z-[9999]" ref={dropdownRef}>
+                {showDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
+                    {countries.map(c => (
                       <button
-                        onClick={() => setShowDropdown(v => !v)}
-                        className="flex items-center gap-2 px-3 py-1.5 border border-[#CAC4D0] rounded-lg bg-white text-[#001627] hover:bg-gray-50 text-sm font-medium min-w-[140px]"
+                        key={c.iso3}
+                        onClick={() => setShowDropdown(false)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-[#000B28]"
                       >
-                        Explore by Country
-                        <ChevronDownIcon className="h-4 w-4" />
+                        <span className="block w-3 h-3 rounded" style={{ backgroundColor: c.color }} />
+                        <span>{c.name}</span>
                       </button>
-
-                      {showDropdown && (
-                        <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-[#CAC4D0] rounded-lg shadow-xl z-[9999] max-h-64 overflow-y-auto">
-                          {countries.map(c => (
-                            <button
-                              key={c.iso3}
-                              onClick={() => setShowDropdown(false)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
-                            >
-                              <span className="block w-3 h-3 rounded" style={{ backgroundColor: c.color }} />
-                              <span>{c.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <button className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 border border-[#CAC4D0] rounded-lg bg-white text-[#001627] hover:bg-gray-50 text-sm font-medium">
-                      <MagnifyingGlassIcon className="h-4 w-4" />
-                      <span>Search</span>
-                    </button>
+                    ))}
                   </div>
-                </>
-              )
-            )}
+                )}
+              </div>
+            </div>
           </div>
-        </FadeInSection>
-      </div>
+
+          {/* Search Button - Top Right Overlay */}
+          <div className="absolute top-0 right-0 z-10 p-4 md:p-8">
+            <button className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 border border-white rounded-lg bg-white text-[#000B28] hover:bg-gray-100 text-sm font-medium">
+              <MagnifyingGlassIcon className="h-4 w-4" />
+              <span>Search</span>
+            </button>
+          </div>
+        </div>
+      </FadeInSection>
     </section>
   );
 }

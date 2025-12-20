@@ -39,8 +39,8 @@ export default function Home() {
       <Hero />
       {/* <StatsBand /> */}
       <ProjectsPreview />
-      <ImpactInsights />
       <Fundraising />
+      
     </main>
   );
 }
