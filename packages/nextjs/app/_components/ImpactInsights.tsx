@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FadeInSection } from "./FadeInSection";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import WorldMap from "@/components/ui/world-map";
+import { LocationProjectsModal } from "./LocationProjectsModal";
 
 /* -------------------------------------------------
    1. Our countries
@@ -77,56 +78,123 @@ const countries: Country[] = [
 ];
 
 /* -------------------------------------------------
-   2. Generate map connections from countries with projects
+   2. Mock locations (cities with actual coordinates)
    ------------------------------------------------- */
-const generateMapDots = () => {
-  const countriesWithProjects = countries.filter(c => c.projects > 0);
-  const dots: Array<{
-    start: { lat: number; lng: number; label?: string };
-    end: { lat: number; lng: number; label?: string };
+const mockLocations = [
+  {
+    lat: 6.5244, // Lagos, Nigeria
+    lng: 3.3792,
+    name: "Lagos",
+    country: "Nigeria",
+    iso3: "NGA",
+  },
+  {
+    lat: 28.6139, // New Delhi, India
+    lng: 77.2090,
+    name: "New Delhi",
+    country: "India",
+    iso3: "IND",
+  },
+  {
+    lat: -23.5505, // São Paulo, Brazil
+    lng: -46.6333,
+    name: "São Paulo",
+    country: "Brazil",
+    iso3: "BRA",
+  },
+  {
+    lat: 43.6532, // Toronto, Canada
+    lng: -79.3832,
+    name: "Toronto",
+    country: "Canada",
+    iso3: "CAN",
+  },
+  {
+    lat: 52.5200, // Berlin, Germany
+    lng: 13.4050,
+    name: "Berlin",
+    country: "Germany",
+    iso3: "DEU",
+  },
+  {
+    lat: -33.8688, // Sydney, Australia
+    lng: 151.2093,
+    name: "Sydney",
+    country: "Australia",
+    iso3: "AUS",
+  },
+];
+
+/* -------------------------------------------------
+   3. Generate connection lines between locations
+   ------------------------------------------------- */
+const generateMapConnections = () => {
+  const connections: Array<{
+    start: { lat: number; lng: number };
+    end: { lat: number; lng: number };
   }> = [];
 
-  // Create connections between countries with projects
-  // Connect each country to the next one in a chain
-  for (let i = 0; i < countriesWithProjects.length - 1; i++) {
-    const current = countriesWithProjects[i];
-    const next = countriesWithProjects[i + 1];
-    dots.push({
+  // Connect locations in a chain
+  for (let i = 0; i < mockLocations.length - 1; i++) {
+    connections.push({
       start: {
-        lat: current.coordinates[1], // lat is second in [lon, lat]
-        lng: current.coordinates[0], // lng is first in [lon, lat]
-        label: current.name,
+        lat: mockLocations[i].lat,
+        lng: mockLocations[i].lng,
       },
       end: {
-        lat: next.coordinates[1],
-        lng: next.coordinates[0],
-        label: next.name,
+        lat: mockLocations[i + 1].lat,
+        lng: mockLocations[i + 1].lng,
       },
     });
   }
 
-  // Also create some cross-connections for visual interest
-  if (countriesWithProjects.length > 2) {
-    // Connect first to third
-    dots.push({
-      start: {
-        lat: countriesWithProjects[0].coordinates[1],
-        lng: countriesWithProjects[0].coordinates[0],
-      },
-      end: {
-        lat: countriesWithProjects[2].coordinates[1],
-        lng: countriesWithProjects[2].coordinates[0],
-      },
-    });
-  }
-
-  return dots;
+  return connections;
 };
 
 export function ImpactInsights() {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    name: string;
+    country: string;
+    iso3: string;
+    coordinates: [number, number];
+  } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const mapDots = generateMapDots();
+  const mapConnections = generateMapConnections();
+
+  const handleLocationClick = (location: { lat: number; lng: number; name?: string; country?: string; iso3?: string }) => {
+    if (!location.name || !location.country || !location.iso3) {
+      // Find closest mock location
+      let closest = mockLocations[0];
+      let minDistance = Infinity;
+
+      mockLocations.forEach((loc) => {
+        const distance = Math.sqrt(
+          Math.pow(location.lat - loc.lat, 2) + Math.pow(location.lng - loc.lng, 2)
+        );
+        if (distance < minDistance) {
+          minDistance = distance;
+          closest = loc;
+        }
+      });
+
+      setSelectedLocation({
+        name: closest.name,
+        country: closest.country,
+        iso3: closest.iso3,
+        coordinates: [closest.lng, closest.lat],
+      });
+    } else {
+      setSelectedLocation({
+        name: location.name,
+        country: location.country,
+        iso3: location.iso3,
+        coordinates: [location.lng, location.lat],
+      });
+    }
+    setIsModalOpen(true);
+  };
 
   /* -------------------------------------------------
      6. Close dropdown
@@ -147,8 +215,24 @@ export function ImpactInsights() {
       <FadeInSection className="w-full">
         <div className="relative w-full">
           {/* ---- MAP ---- */}
-          <div className="relative z-0 w-full">
-            <WorldMap dots={mapDots} lineColor="#0ea5e9" />
+          <div className="relative z-0 w-full" style={{ padding: '0 4%' }}>
+            <WorldMap 
+              locations={mockLocations} 
+              dots={mapConnections} 
+              lineColor="#0ea5e9" 
+              onLocationClick={handleLocationClick}
+            >
+              {isModalOpen && selectedLocation && (
+                <LocationProjectsModal
+                  isOpen={isModalOpen}
+                  onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedLocation(null);
+                  }}
+                  location={selectedLocation}
+                />
+              )}
+            </WorldMap>
           </div>
 
           {/* Header - Top Left Overlay */}
