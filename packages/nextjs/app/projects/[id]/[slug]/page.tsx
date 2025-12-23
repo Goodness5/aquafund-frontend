@@ -10,6 +10,7 @@ import { useProjectData } from "~~/contexts/ProjectDataContext";
 import { createSlug } from "~~/utils/slug";
 import DonationModal from "~~/app/_components/DonationModal";
 import { Address } from "@scaffold-ui/components";
+import { useCopyToClipboard } from "~~/hooks/scaffold-eth/useCopyToClipboard";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -48,6 +49,7 @@ export default function ProjectDetail() {
 
   const { fetchProject, getProject } = useProjectData();
   const { writeContractAsync: writeProject } = useScaffoldWriteContract({ contractName: "AquaFundProject" });
+  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
   
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -160,6 +162,31 @@ export default function ProjectDetail() {
   const prevImage = () => {
     if (hasMultipleImages) {
       setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+  };
+
+  const handleShare = async () => {
+    const currentUrl = window.location.href;
+    const shareData = {
+      title: projectData?.title || "Check out this project",
+      text: projectData?.description || `Check out this project: ${projectData?.title}`,
+      url: currentUrl,
+    };
+
+    try {
+      // Try using Web Share API if available (mobile devices)
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard
+        await copyToClipboard(currentUrl);
+      }
+    } catch (error: any) {
+      // If user cancels share, don't show error
+      if (error.name !== "AbortError") {
+        // Fallback to clipboard if share fails
+        await copyToClipboard(currentUrl);
+      }
     }
   };
 
@@ -353,8 +380,11 @@ export default function ProjectDetail() {
 
               {/* Buttons */}
               <div className="space-y-3 mb-6">
-                <button className="w-full px-4 py-2 border border-[#CAC4D0] rounded-full text-[#001627] hover:bg-[#E1FFFF] transition-colors font-medium">
-                  Share
+                <button 
+                  onClick={handleShare}
+                  className="w-full px-4 py-2 border border-[#CAC4D0] rounded-full text-[#001627] hover:bg-[#E1FFFF] transition-colors font-medium"
+                >
+                  {isCopiedToClipboard ? "Link Copied!" : "Share"}
                 </button>
                 <button
                   onClick={() => setShowDonateModal(true)}
