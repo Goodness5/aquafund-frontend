@@ -9,6 +9,7 @@ import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth/useScaffoldWrite
 import { useProjectData } from "~~/contexts/ProjectDataContext";
 import { createSlug } from "~~/utils/slug";
 import DonationModal from "~~/app/_components/DonationModal";
+import { Address } from "@scaffold-ui/components";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -20,6 +21,8 @@ interface Donation {
   donor: string;
   amount: string;
   currency: string;
+  // Note: timestamp, transactionHash, and blockNumber are not available
+  // when using contract functions instead of events
 }
 
 // Component to render rich text content from text editors
@@ -89,13 +92,41 @@ export default function ProjectDetail() {
     loadProject();
   }, [projectId, slugParam, fetchProject, getProject, router]);
 
-  // Fetch recent donations (placeholder - should come from API)
+  // Fetch recent donations from API
   useEffect(() => {
-    if (projectData) {
-      // TODO: Fetch actual donations from API
-      setRecentDonations([]);
+    if (!projectData || !projectId) {
+      return;
     }
-  }, [projectData]);
+
+    const fetchDonations = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/donations`);
+        if (!response.ok) {
+          console.warn("Failed to fetch donations:", response.statusText);
+          setRecentDonations([]);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.donations && Array.isArray(data.donations)) {
+          // Transform API response to Donation interface
+          const formattedDonations: Donation[] = data.donations.map((donation: any) => ({
+            donor: donation.donor,
+            amount: donation.amount,
+            currency: donation.currency,
+          }));
+          setRecentDonations(formattedDonations);
+        } else {
+          setRecentDonations([]);
+        }
+      } catch (error) {
+        console.error("Error fetching donations:", error);
+        setRecentDonations([]);
+      }
+    };
+
+    fetchDonations();
+  }, [projectData, projectId]);
 
   if (projectId === null) return notFound();
   if (loading) {
@@ -163,6 +194,25 @@ export default function ProjectDetail() {
       if (updated) {
         setProjectData(updated);
       }
+      // Refresh donations list (with a small delay to allow transaction to be mined)
+      setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/projects/${projectId}/donations?refresh=true`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.donations && Array.isArray(data.donations)) {
+              const formattedDonations: Donation[] = data.donations.map((donation: any) => ({
+                donor: donation.donor,
+                amount: donation.amount,
+                currency: donation.currency,
+              }));
+              setRecentDonations(formattedDonations);
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing donations:", error);
+        }
+      }, 3000); // Wait 3 seconds for transaction to be mined
     } catch (error) {
       console.error("Donation failed:", error);
       // Don't close modal on error - let user retry
@@ -317,20 +367,37 @@ export default function ProjectDetail() {
 
               {/* Recent Donations */}
               <div className="space-y-4 pt-4 border-t border-[#CAC4D0]">
-                <h3 className="font-semibold text-lg text-[#001627]">Recent Donations</h3>
+                <h3 className="font-semibold text-lg text-[#001627]">Top Donors</h3>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {recentDonations.length > 0 ? (
-                    recentDonations.map((donation, index) => (
-                      <div key={index} className="flex items-center gap-3 text-sm">
-                        <UserCircleIcon className="w-5 h-5 text-[#475068] flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <span className="font-medium text-[#001627]">{donation.donor}</span> donated{" "}
-                          <span className="font-semibold text-[#001627]">
-                            {donation.amount} {donation.currency}
-                          </span>
+                    recentDonations.map((donation, index) => {
+                      const formattedAmount = Number(donation.amount).toFixed(4);
+
+                      return (
+                        <div key={donation.donor || index} className="flex items-start gap-3 text-sm pb-3 border-b border-[#E5E7EB] last:border-0">
+                          <UserCircleIcon className="w-5 h-5 text-[#475068] flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <a
+                                href={`https://testnet.bscscan.com/address/${donation.donor}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#001627] hover:underline font-medium"
+                              >
+                                {donation.donor.slice(0, 6)}...{donation.donor.slice(-4)}
+                              </a>
+                              <span className="text-[#475068]">donated</span>
+                              <span className="font-semibold text-[#001627]">
+                                {formattedAmount} {donation.currency}
+                              </span>
+                            </div>
+                            <div className="text-xs text-[#475068] mt-1">
+                              Total contribution
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-sm text-[#475068] text-center py-4">
                       No donations yet. Be the first!

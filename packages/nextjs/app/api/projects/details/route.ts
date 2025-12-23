@@ -6,6 +6,7 @@ import AquaFundRegistryAbi from "~~/contracts/abis/AquaFundRegistry.json";
 import AquaFundFactoryAbi from "~~/contracts/abis/AquaFundFactory.json";
 import AquaFundProjectAbi from "~~/contracts/abis/AquaFundProject.json";
 import { bytes32ToString } from "~~/utils/bytes32";
+import scaffoldConfig from "~~/scaffold.config";
 
 // Helper function to fetch project details from a project contract
 async function fetchProjectDetails(
@@ -157,10 +158,17 @@ async function fetchProjectDetails(
 // Get a single project by ID
 async function getSingleProject(projectId: string, projectAddress?: string | null) {
   try {
-    const publicClient = createPublicClient({
-      chain: bscTestnet,
-      transport: http(),
-    });
+        // Use RPC override if configured, otherwise use environment variable, otherwise fallback to default
+        const rpcOverrides = scaffoldConfig.rpcOverrides as Record<number, string> | undefined;
+        const rpcUrl = 
+          (rpcOverrides && rpcOverrides[bscTestnet.id]) ||
+          process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL ||
+          undefined;
+        
+        const publicClient = createPublicClient({
+          chain: bscTestnet,
+          transport: rpcUrl ? http(rpcUrl) : http(),
+        });
 
     const factoryAddress = externalContracts[97]?.AquaFundFactory?.address;
     if (!factoryAddress) {
@@ -212,10 +220,17 @@ async function getSingleProject(projectId: string, projectAddress?: string | nul
 // Get all projects
 async function getAllProjects() {
   try {
-    const publicClient = createPublicClient({
-      chain: bscTestnet,
-      transport: http(),
-    });
+        // Use RPC override if configured, otherwise use environment variable, otherwise fallback to default
+        const rpcOverrides = scaffoldConfig.rpcOverrides as Record<number, string> | undefined;
+        const rpcUrl = 
+          (rpcOverrides && rpcOverrides[bscTestnet.id]) ||
+          process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL ||
+          undefined;
+        
+        const publicClient = createPublicClient({
+          chain: bscTestnet,
+          transport: rpcUrl ? http(rpcUrl) : http(),
+        });
 
     const registryAddress = externalContracts[97]?.AquaFundRegistry?.address;
     if (!registryAddress) {

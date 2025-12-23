@@ -25,9 +25,14 @@ const scaffoldConfig = {
   alchemyApiKey: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY || DEFAULT_ALCHEMY_API_KEY,
   // If you want to use a different RPC for a specific network, you can add it here.
   // The key is the chain ID, and the value is the HTTP RPC URL
+  // For BSC Testnet, you can use:
+  // - QuickNode: https://bsc-testnet.quicknode.com/v1/YOUR_API_KEY
+  // - Ankr: https://rpc.ankr.com/bsc_testnet_chapel
+  // - Your own node or Infura/other provider
   rpcOverrides: {
     // Example:
     // [chains.mainnet.id]: "https://mainnet.rpc.buidlguidl.com",
+    // [chains.bscTestnet.id]: process.env.NEXT_PUBLIC_BSC_TESTNET_RPC_URL || undefined,
   },
   // This is ours WalletConnect's default project ID.
   // You can get your own at https://cloud.walletconnect.com
